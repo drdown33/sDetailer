@@ -15,7 +15,7 @@ namespace SDetailerExtension
 {
     public class SDetailerExtension : Extension
     {
-        public static T2IParamGroup Group = new("sDetailer", Toggles: true, Open: false, OrderPriority: -10);
+        public static T2IParamGroup Group = new("sDetailer", Toggles: true, Open: false, OrderPriority: -2);
         public static T2IRegisteredParam<string> DetectionModel;
         public static T2IRegisteredParam<float> ConfidenceThreshold;
         public static T2IRegisteredParam<string> MaskFilterMethod;
