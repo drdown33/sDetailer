@@ -61,7 +61,7 @@ namespace SDetailerExtension
         {
             ComfyUIBackendExtension.NodeToFeatureMap["SDetailerDetect"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SDetailerInpaintHelper"] = "comfyui";
-            DetectionModel = T2IParamTypes.Register<string>(new("SD Detection Model", "Select the detection model used to find objects or faces for inpainting. Requires models in the 'ComfyUI/models/yolov8' folder.",
+            DetectionModel = T2IParamTypes.Register<string>(new("SD Detection Model", "Select detection model for inpainting. Models go in 'SwarmUI/Models/yolov8'.",
                 "(None)",
                 Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_detection_model", OrderPriority: 10,
                 GetValues: (_) => {
@@ -73,65 +73,65 @@ namespace SDetailerExtension
                 }
             ));
 
-            MaskFilterMethod = T2IParamTypes.Register<string>(new("SD Filter Method", "Method to select which masks to process if multiple are detected: 'area' sorts by size, 'confidence' sorts by detection certainty.", "area",
+            MaskFilterMethod = T2IParamTypes.Register<string>(new("SD Filter Method", "Prioritize multiple masks by 'area' (larger first) or 'confidence' (higher score first).", "area",
                 Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_filter_method", OrderPriority: 30,
                 GetValues: (_) => new List<string> { "area", "confidence" }));
 
-            MaskTopK = T2IParamTypes.Register<int>(new("SD Mask TopK", "Maximum number of detected masks to process, based on the Filter Method and Sort Order (0 = process all).", "0",
+            MaskTopK = T2IParamTypes.Register<int>(new("SD Mask TopK", "Max masks to inpaint, based on 'SD Filter Method'. 0 = process all.", "0",
                 Min: 0, Max: 100, Step: 1, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_mask_topk", OrderPriority: 40));
 
-            MinRatio = T2IParamTypes.Register<float>(new("SD Min Area Ratio", "Ignore masks smaller than this fraction of the total image area (e.g., 0.01 = 1%).", "0.0",
+            MinRatio = T2IParamTypes.Register<float>(new("SD Min Area Ratio", "Ignore masks smaller than this fraction of image area (e.g., 0.01 = 1%).", "0.0",
                 Min: 0.0f, Max: 1.0f, Step: 0.001f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_min_ratio", OrderPriority: 50));
 
-            MaxRatio = T2IParamTypes.Register<float>(new("SD Max Area Ratio", "Ignore masks larger than this fraction of the total image area (e.g., 0.9 = 90%).", "1.0",
+            MaxRatio = T2IParamTypes.Register<float>(new("SD Max Area Ratio", "Ignore masks larger than this fraction of image area (e.g., 0.9 = 90%).", "1.0",
                 Min: 0.0f, Max: 1.0f, Step: 0.001f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_max_ratio", OrderPriority: 60));
 
-            SkipIndices = T2IParamTypes.Register<string>(new("SD Skip Indices", "Comma-separated list of detection indices (1-based) to skip *after* sorting. Eg '1,3' skips the first and third detection.", "",
+            SkipIndices = T2IParamTypes.Register<string>(new("SD Skip Indices", "Comma-separated mask indices (1-based) to skip after sorting (e.g., '1,3').", "",
                 Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_skip_indices", OrderPriority: 65));
 
-            XOffset = T2IParamTypes.Register<int>(new("SD X Offset", "Shift the generated mask horizontally in pixels (positive = right, negative = left).", "0",
+            XOffset = T2IParamTypes.Register<int>(new("SD X Offset", "Shift mask horizontally (pixels). Positive = right, negative = left.", "0",
                 Min: -200, Max: 200, Step: 1, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_x_offset", OrderPriority: 70));
 
-            YOffset = T2IParamTypes.Register<int>(new("SD Y Offset", "Shift the generated mask vertically in pixels (positive = down, negative = up).", "0",
+            YOffset = T2IParamTypes.Register<int>(new("SD Y Offset", "Shift mask vertically (pixels). Positive = down, negative = up.", "0",
                 Min: -200, Max: 200, Step: 1, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_y_offset", OrderPriority: 80));
 
-            DilateErode = T2IParamTypes.Register<int>(new("SD Dilate/Erode", "Expand (positive value) or shrink (negative value) the mask area by this many pixels. 0 = no change.", "4",
+            DilateErode = T2IParamTypes.Register<int>(new("SD Dilate/Erode", "Expand (positive) or shrink (negative) mask area in pixels. 0 = no change.", "4",
                 Min: -128, Max: 128, Step: 4, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_dilate_erode", OrderPriority: 90));
 
-            MaskMergeInvert = T2IParamTypes.Register<string>(new("SD Mask Merge Mode", "How to handle multiple masks: 'none' (process separately), 'merge' (combine into one), 'merge_invert' (combine and invert).", "none",
+            MaskMergeInvert = T2IParamTypes.Register<string>(new("SD Mask Merge Mode", "Handle multiple masks: 'none' (separate), 'merge' (combine), 'merge_invert' (combine & invert).", "none",
                 Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_mask_merge_invert", OrderPriority: 100,
                 GetValues: (_) => new List<string> { "none", "merge", "merge_invert" }));
 
-            MaskBlur = T2IParamTypes.Register<int>(new("SD Mask Blur", "Apply Gaussian blur to the mask edge for smoother inpainting transitions. 0 = sharp edge.", "4",
+            MaskBlur = T2IParamTypes.Register<int>(new("SD Mask Blur", "Blur mask edge (pixels) for smoother transitions. 0 = sharp edge.", "4",
                 Min: 0, Max: 64, Step: 1, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_mask_blur_amount", OrderPriority: 110));
 
-            DenoisingStrength = T2IParamTypes.Register<float>(new("SD Denoising Strength", "Controls how much the original image content is changed within the mask during inpainting (0 = no change, 1 = completely replace).", "0.4",
+            DenoisingStrength = T2IParamTypes.Register<float>(new("SD Denoising Strength", "How much original image is changed in mask (0 = none, 1 = full replace).", "0.4",
                 Min: 0.0f, Max: 1.0f, Step: 0.05f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_denoising_strength", OrderPriority: 112));
 
-            ConfidenceThreshold = T2IParamTypes.Register<float>(new("SD Confidence Threshold", "Minimum confidence score (0-1) for the detection model to consider an object/face found. Lower values detect more, potentially including false positives.", "0.3",
+            ConfidenceThreshold = T2IParamTypes.Register<float>(new("SD Confidence Threshold", "Min detection score (0-1) to consider an object found. Lower = more detections.", "0.3",
                 Min: 0.05f, Max: 1.0f, Step: 0.05f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_confidence_threshold", OrderPriority: 115));
 
-            Prompt = T2IParamTypes.Register<string>(new("SD Prompt", "Positive prompt used specifically for the inpainting step. If empty, the main prompt is used.",
+            Prompt = T2IParamTypes.Register<string>(new("SD Prompt", "Positive prompt for inpainting. Uses main prompt if empty.",
                 "", Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_prompt", OrderPriority: 120, ViewType: ParamViewType.PROMPT));
 
-            NegativePrompt = T2IParamTypes.Register<string>(new("SD Negative Prompt", "Negative prompt used specifically for the inpainting step. If empty, the main negative prompt is used.",
+            NegativePrompt = T2IParamTypes.Register<string>(new("SD Negative Prompt", "Negative prompt for inpainting. Uses main negative prompt if empty.",
                 "", Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_negative_prompt", OrderPriority: 130, ViewType: ParamViewType.PROMPT));
 
-            Seed = T2IParamTypes.Register<long>(new("SD Seed", "Seed for the inpainting generation. -1 uses a random seed; otherwise, uses the specified value. Does not affect detection.",
+            Seed = T2IParamTypes.Register<long>(new("SD Seed", "Inpainting seed. -1 for random. Does not affect detection.",
                 "-1", Min: -1, Max: long.MaxValue, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_seed", OrderPriority: 150));
 
-            Checkpoint = T2IParamTypes.Register<T2IModel>(new("SD Checkpoint", "Override Checkpoint: Use a different base model specifically for the inpainting step.",
+            Checkpoint = T2IParamTypes.Register<T2IModel>(new("SD Checkpoint", "Override Checkpoint: Use a different base model for inpainting.",
                 null, Toggleable: true, Group: Group, FeatureFlag: "comfyui",
                 Subtype: "Stable-Diffusion", ChangeWeight: 9, ID: "sdetailer_checkpoint", OrderPriority: 160,
                 GetValues: (session) => Program.T2IModelSets["Stable-Diffusion"].ListModelNamesFor(session)));
 
-            VAE = T2IParamTypes.Register<T2IModel>(new("SD VAE", "Override VAE: Use a different VAE specifically for the inpainting step. 'Automatic' uses the default/checkpoint VAE.",
+            VAE = T2IParamTypes.Register<T2IModel>(new("SD VAE", "Override VAE: Use a different VAE for inpainting. 'Automatic' uses default.",
                 null, Toggleable: true, Group: Group,
                 FeatureFlag: "comfyui", Subtype: "VAE", ChangeWeight: 7, ID: "sdetailer_vae", OrderPriority: 170,
                 GetValues: (session) => Program.T2IModelSets["VAE"].ListModelNamesFor(session)));
 
             const string NoneSamplerPlaceholder = "(None)";
-            Sampler = T2IParamTypes.Register<string>(new("SD Sampler", "Override Sampler: Use a different sampler/scheduler specifically for the inpainting step.",
+            Sampler = T2IParamTypes.Register<string>(new("SD Sampler", "Override Sampler: Use a different sampler for inpainting.",
                 NoneSamplerPlaceholder,
                 Toggleable: true, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_sampler", OrderPriority: 180,
                 GetValues: (session) => {
@@ -160,16 +160,16 @@ namespace SDetailerExtension
                     return [NoneSchedulerPlaceholder];
                 }));
 
-            Steps = T2IParamTypes.Register<int>(new("SD Steps", "Override Steps: Use a different number of sampling steps specifically for the inpainting step.", "28",
+            Steps = T2IParamTypes.Register<int>(new("SD Steps", "Override Steps: Use different sampling steps for inpainting.", "28",
                 Min: 1, Max: 150, Step: 1, Toggleable: true, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_steps", OrderPriority: 190));
 
-            CFGScale = T2IParamTypes.Register<float>(new("SD CFG Scale", "Override CFG Scale: Use a different prompt guidance strength specifically for the inpainting step.", "7.0",
+            CFGScale = T2IParamTypes.Register<float>(new("SD CFG Scale", "Override CFG Scale: Use different prompt guidance for inpainting.", "7.0",
                 Min: 0.0f, Max: 30.0f, Step: 0.5f, Toggleable: true, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_cfg_scale", OrderPriority: 200));
 
-            InpaintWidth = T2IParamTypes.Register<int>(new("SD Width", "Override Width: Set the width for the internal inpainting process. May affect results if different from main width.", "512",
+            InpaintWidth = T2IParamTypes.Register<int>(new("SD Width", "Override Inpainting Width: Target width for the inpainted patch generation. Defaults to main width or 512 if disabled.", "512",
                 Min: 64, Max: 2048, Step: 4, Toggleable: true, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_width", OrderPriority: 210));
 
-            InpaintHeight = T2IParamTypes.Register<int>(new("SD Height", "Override Height: Set the height for the internal inpainting process. May affect results if different from main height.", "512",
+            InpaintHeight = T2IParamTypes.Register<int>(new("SD Height", "Override Inpainting Height: Target height for the inpainted patch generation. Defaults to main height or 512 if disabled.", "512",
                 Min: 64, Max: 2048, Step: 4, Toggleable: true, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_height", OrderPriority: 220));
 
             WorkflowGenerator.AddStep(g =>
