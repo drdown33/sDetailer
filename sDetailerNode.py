@@ -7,7 +7,8 @@ import folder_paths
 import comfy
 import comfy.model_management
 import os
-
+if hasattr(torch, 'serialization') and hasattr(torch.serialization, 'add_safe_globals'):
+    torch.serialization.add_safe_globals(['ultralytics.nn.tasks.DetectionModel'])
 
 class SDetailerDetect:
     @classmethod
