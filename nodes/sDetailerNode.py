@@ -11,6 +11,7 @@ import os
 # if hasattr(torch, 'serialization') and hasattr(torch.serialization, 'add_safe_globals'):
 #     torch.serialization.add_safe_globals(['ultralytics.nn.tasks.DetectionModel'])
 
+
 class SDetailerDetect:
     @classmethod
     def INPUT_TYPES(cls):
@@ -51,23 +52,22 @@ class SDetailerDetect:
     FUNCTION = "detect"
 
     @classmethod
-    def IS_CHANGED(cls, detection_model, confidence_threshold, class_filter=None,
+    def IS_CHANGED(cls, detection_model, confidence_threshold, class_filter="",
                    kernel_size=4, x_offset=0, y_offset=0, mask_merge_mode="none",
-                   max_detections=0, min_ratio=0.0, max_ratio=1.0, sort_order="left-right",
-                   skip_indices="", **kwargs):
-       return (detection_model, confidence_threshold, class_filter, kernel_size,
-               x_offset, y_offset, mask_merge_mode, max_detections,
-               min_ratio, max_ratio, sort_order, skip_indices)
+                   max_detections=0, min_ratio=0.0, max_ratio=1.0, sort_order="left-right", skip_indices="", **kwargs):
+        return (detection_model, confidence_threshold, class_filter, kernel_size,
+                x_offset, y_offset, mask_merge_mode, max_detections,
+                min_ratio, max_ratio, sort_order, skip_indices)
 
     def detect(self, image, detection_model, confidence_threshold, class_filter=None,
-               kernel_size=4, x_offset=0, y_offset=0, mask_merge_mode="none",
-               max_detections=0, min_ratio=0.0, max_ratio=1.0, sort_order="left-right",
-               skip_indices=""):
+              kernel_size=4, x_offset=0, y_offset=0, mask_merge_mode="none",
+              max_detections=0, min_ratio=0.0, max_ratio=1.0, sort_order="left-right",
+              skip_indices=""):
 
         i = 255.0 * image[0].cpu().numpy()
         img_array = np.clip(i, 0, 255).astype(np.uint8)
         img = Image.fromarray(img_array)
-        img = img.convert("RGB")
+        img = img.convert("RGB") 
         img_size = img.size
         
         masks = []
@@ -117,7 +117,6 @@ class SDetailerDetect:
                 filtered_masks_after_skip = []
                 filtered_bboxes_after_skip = []
                 filtered_confidences_after_skip = []
-
                 for idx, (mask, bbox, conf) in enumerate(zip(sorted_masks, sorted_bboxes, sorted_confidences)):
                     if idx not in skip_set:
                         filtered_masks_after_skip.append(mask)
@@ -129,12 +128,13 @@ class SDetailerDetect:
                 masks = filtered_masks_after_skip
                 bboxes = filtered_bboxes_after_skip
                 confidences = filtered_confidences_after_skip
-                print(f"SDetailerDetect: {len(masks)} detections remaining after skipping by index.")
+                print(f"SDetailerDetect: {len(masks)} detections remaining after skipping.")
             else:
                  masks = sorted_masks
                  bboxes = sorted_bboxes
                  confidences = sorted_confidences
         
+
         if masks:
              masks = self.mask_preprocess(masks, kernel_size, x_offset, y_offset, mask_merge_mode)
              print(f"SDetailerDetect: {len(masks)} masks after preprocessing.")
@@ -311,11 +311,11 @@ class SDetailerDetect:
             except ImportError:
                 print(f"Ultralytics import failed. Cannot perform detection.")
                 return {"masks": [], "bboxes": [], "confidences": []}
- 
+
             target_device = comfy.model_management.get_torch_device()
- 
+
             model = YOLO(model_path)
- 
+
             selected_classes = None
             if class_filter and class_filter.strip():
                 class_filter_list = [cls_name.strip() for cls_name in class_filter.split(",") if cls_name.strip()]
@@ -331,92 +331,82 @@ class SDetailerDetect:
                                  selected_classes.append(class_id)
                              else:
                                  print(f"Class '{cls_name}' not found in the model")
-             
-             
+            
+            
             device_str_for_inference = "" if 'cuda' in str(target_device) else 'cpu'
-             
             results = model(img, conf=confidence, device=device_str_for_inference, verbose=False)
- 
+
             if not results or len(results) == 0:
                  return {"masks": [], "bboxes": [], "confidences": []}
-             
+            
             boxes = results[0].boxes if results and len(results) > 0 else None
             confidences = boxes.conf.cpu().numpy().tolist() if boxes is not None and boxes.conf is not None else []
-            bboxes_data = boxes.xyxy.cpu().numpy().tolist() if boxes is not None and boxes.xyxy is not None and boxes.xyxy.shape[0] > 0 else []
+            bboxes = boxes.xyxy.cpu().numpy().tolist() if boxes is not None and boxes.xyxy is not None and boxes.xyxy.shape[0] > 0 else []
             class_ids = boxes.cls.cpu().numpy().tolist() if boxes is not None and boxes.cls is not None else []
 
             if results and len(results) > 0 and results[0].masks is not None:
                 masks_data = results[0].masks.data
                 
                 if selected_classes is not None:
-                    selected_masks_for_stack = []
-                    selected_bboxes_for_return = []
-                    selected_confidences_for_return = []
+                    selected_masks = []
+                    selected_bboxes = []
+                    selected_confidences = []
                     
-                    for i, class_id_val in enumerate(class_ids):
-                        if class_id_val in selected_classes:
-                            mask_val = masks_data[i].cpu()
-                            selected_masks_for_stack.append(mask_val)
-                            selected_bboxes_for_return.append(bboxes_data[i])
-                            selected_confidences_for_return.append(confidences[i])
+                    for i, class_id in enumerate(class_ids):
+                        if class_id in selected_classes:
+                            mask = masks_data[i].cpu()
+                            selected_masks.append(mask)
+                            selected_bboxes.append(bboxes[i])
+                            selected_confidences.append(confidences[i])
                     
-                    masks_data = torch.stack(selected_masks_for_stack) if selected_masks_for_stack else None
-                    bboxes_final = selected_bboxes_for_return
-                    confidences_final = selected_confidences_for_return
-                else:
-                   bboxes_final = bboxes_data
-                   confidences_final = confidences
-
+                    masks_data = torch.stack(selected_masks) if selected_masks else None
+                    bboxes = selected_bboxes
+                    confidences = selected_confidences
+                
                 if masks_data is not None and masks_data.shape[0] > 0:
                     pil_masks = []
-                    for i_idx in range(masks_data.shape[0]):
-                        mask_val_loop = masks_data[i_idx].cpu().float()
-                        mask_val_loop = torch.nn.functional.interpolate(
-                            mask_val_loop.unsqueeze(0).unsqueeze(0),
+                    for i in range(masks_data.shape[0]):
+                        mask = masks_data[i].cpu().float()
+                        mask = torch.nn.functional.interpolate(
+                            mask.unsqueeze(0).unsqueeze(0),
                             size=img.size,
                             mode="bilinear"
                         ).squeeze()
                         
-                        mask_img = Image.fromarray((mask_val_loop.numpy() * 255).astype(np.uint8))
+                        mask_img = Image.fromarray((mask.numpy() * 255).astype(np.uint8))
                         pil_masks.append(mask_img)
                     
-                    return {"masks": pil_masks, "bboxes": bboxes_final, "confidences": confidences_final}
+                    return {"masks": pil_masks, "bboxes": bboxes, "confidences": confidences}
                 else:
                     print(f"SDetailerDetect: No valid segmentation masks found after processing.")
                     pil_masks = []
 
 
-            elif bboxes_data:
+            elif bboxes:
                  if selected_classes is not None:
-                   filtered_bboxes_for_return = []
-                   filtered_confidences_for_return = []
+                    filtered_bboxes = []
+                    filtered_confidences = []
                     
-                   for i_idx, class_id_val in enumerate(class_ids):
-                        if class_id_val in selected_classes:
-                            filtered_bboxes_for_return.append(bboxes_data[i_idx])
-                            filtered_confidences_for_return.append(confidences[i_idx])
+                    for i, class_id in enumerate(class_ids):
+                        if class_id in selected_classes:
+                            filtered_bboxes.append(bboxes[i])
+                            filtered_confidences.append(confidences[i])
                     
-                   bboxes_final_bbox_path = filtered_bboxes_for_return
-                   confidences_final_bbox_path = filtered_confidences_for_return
-                 else:
-                    bboxes_final_bbox_path = bboxes_data
-                    confidences_final_bbox_path = confidences
+                    bboxes = filtered_bboxes
+                    confidences = filtered_confidences
 
                  pil_masks = []
-                 for bbox_val in bboxes_final_bbox_path:
-                    mask_img_bbox = Image.new("L", img.size, 0)
-                    draw = ImageDraw.Draw(mask_img_bbox)
-                    x1, y1, x2, y2 = [int(coord) for coord in bbox_val]
+                 for bbox in bboxes:
+                    mask = Image.new("L", img.size, 0)
+                    draw = ImageDraw.Draw(mask)
+                    x1, y1, x2, y2 = [int(coord) for coord in bbox]
                     draw.rectangle([x1, y1, x2, y2], fill=255)
-                    pil_masks.append(mask_img_bbox)
+                    pil_masks.append(mask)
 
-                 return {"masks": pil_masks, "bboxes": bboxes_final_bbox_path, "confidences": confidences_final_bbox_path}
- 
- 
+                 return {"masks": pil_masks, "bboxes": bboxes, "confidences": confidences}
+
         except Exception as e:
             print(f"SDetailerDetect: Error during YOLO detection: {e}")
-            import traceback
-            traceback.print_exc()
         
         return {"masks": [], "bboxes": [], "confidences": []}
     
@@ -551,12 +541,11 @@ class SDetailerDetect:
             indices = indices[::-1]
         
         return indices
-        
 
 NODE_CLASS_MAPPINGS = {
     "SDetailerDetect": SDetailerDetect,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SDetailerDetect": "sDetailer Detection",
+    "SDetailerDetect": "sDetailer Detect",
 }
