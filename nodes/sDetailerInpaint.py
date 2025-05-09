@@ -1,4 +1,5 @@
 import torch
+import random
 import comfy
 import numpy as np
 from PIL import Image
@@ -39,6 +40,8 @@ class SDetailerInpaintHelper:
 
     @classmethod
     def IS_CHANGED(cls, strength, guidance_scale, steps, scheduler, sampler_name, seed, mask_blur=4, **kwargs):
+        if seed == 0:
+            return (strength, guidance_scale, steps, scheduler, sampler_name, random.randint(0, 0xffffffffffffffff), mask_blur)
         return (strength, guidance_scale, steps, scheduler, sampler_name, seed, mask_blur)
 
     def inpaint(self, image, mask, model, clip, vae, positive, negative,

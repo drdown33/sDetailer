@@ -19,6 +19,7 @@ namespace SDetailerExtension
         public static T2IRegisteredParam<string> DetectionModel;
         public static T2IRegisteredParam<float> ConfidenceThreshold;
         public static T2IRegisteredParam<string> MaskFilterMethod;
+        public static T2IRegisteredParam<string> ClassFilter;
         public static T2IRegisteredParam<int> MaskTopK;
         public static T2IRegisteredParam<float> MinRatio;
         public static T2IRegisteredParam<float> MaxRatio;
@@ -30,8 +31,6 @@ namespace SDetailerExtension
         public static T2IRegisteredParam<float> DenoisingStrength;
         public static T2IRegisteredParam<string> Prompt;
         public static T2IRegisteredParam<string> NegativePrompt;
-        public static T2IRegisteredParam<int> InpaintWidth;
-        public static T2IRegisteredParam<int> InpaintHeight;
         public static T2IRegisteredParam<int> Steps;
         public static T2IRegisteredParam<float> CFGScale;
         public static T2IRegisteredParam<T2IModel> Checkpoint;
@@ -52,7 +51,7 @@ namespace SDetailerExtension
 
         public override void OnPreInit()
         {
-            string nodeFolder = Path.Join(FilePath, "");
+            string nodeFolder = Path.Join(FilePath, "nodes");
             ComfyUISelfStartBackend.CustomNodePaths.Add(nodeFolder);
             Logs.Init($"Adding {nodeFolder} to CustomNodePaths");
         }
@@ -73,6 +72,9 @@ namespace SDetailerExtension
                 }
             ));
 
+            ClassFilter = T2IParamTypes.Register<string>(new("SD Class Filter", "Comma-separated list of class names or IDs to include (e.g., 'person, car, 3'). Leave empty to include all classes.", "",
+                Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_class_filter", OrderPriority: 25));
+
             MaskFilterMethod = T2IParamTypes.Register<string>(new("SD Filter Method", "Prioritize multiple masks by 'area' (larger first) or 'confidence' (higher score first).", "area",
                 Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_filter_method", OrderPriority: 30,
                 GetValues: (_) => new List<string> { "area", "confidence" }));
@@ -80,21 +82,21 @@ namespace SDetailerExtension
             MaskTopK = T2IParamTypes.Register<int>(new("SD Mask TopK", "Max masks to inpaint, based on 'SD Filter Method'. 0 = process all.", "0",
                 Min: 0, Max: 100, Step: 1, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_mask_topk", OrderPriority: 40));
 
-            MinRatio = T2IParamTypes.Register<float>(new("SD Min Area Ratio", "Ignore masks smaller than this fraction of image area (e.g., 0.01 = 1%).", "0.0",
-                Min: 0.0f, Max: 1.0f, Step: 0.001f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_min_ratio", OrderPriority: 50));
-
-            MaxRatio = T2IParamTypes.Register<float>(new("SD Max Area Ratio", "Ignore masks larger than this fraction of image area (e.g., 0.9 = 90%).", "1.0",
-                Min: 0.0f, Max: 1.0f, Step: 0.001f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_max_ratio", OrderPriority: 60));
-
+            MinRatio = T2IParamTypes.Register<float>(new("SD Min Area Ratio", "Ignore masks smaller than this fraction of image area (e.g., 0.1 for 10%).", "0.0",
+                Min: 0.0f, Max: 1.0f, Step: 0.1f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_min_ratio", OrderPriority: 50));
+ 
+            MaxRatio = T2IParamTypes.Register<float>(new("SD Max Area Ratio", "Ignore masks larger than this fraction of image area (e.g., 0.9 for 90%).", "1.0",
+                Min: 0.0f, Max: 1.0f, Step: 0.1f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_max_ratio", OrderPriority: 60));
+ 
             SkipIndices = T2IParamTypes.Register<string>(new("SD Skip Indices", "Comma-separated mask indices (1-based) to skip after sorting (e.g., '1,3').", "",
                 Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_skip_indices", OrderPriority: 65));
-
+ 
             XOffset = T2IParamTypes.Register<int>(new("SD X Offset", "Shift mask horizontally (pixels). Positive = right, negative = left.", "0",
                 Min: -200, Max: 200, Step: 1, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_x_offset", OrderPriority: 70));
-
+ 
             YOffset = T2IParamTypes.Register<int>(new("SD Y Offset", "Shift mask vertically (pixels). Positive = down, negative = up.", "0",
                 Min: -200, Max: 200, Step: 1, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_y_offset", OrderPriority: 80));
-
+ 
             DilateErode = T2IParamTypes.Register<int>(new("SD Dilate/Erode", "Expand (positive) or shrink (negative) mask area in pixels. 0 = no change.", "4",
                 Min: -128, Max: 128, Step: 4, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_dilate_erode", OrderPriority: 90));
 
@@ -114,50 +116,60 @@ namespace SDetailerExtension
             Prompt = T2IParamTypes.Register<string>(new("SD Prompt", "Positive prompt for inpainting. Uses main prompt if empty.",
                 "", Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_prompt", OrderPriority: 120, ViewType: ParamViewType.PROMPT));
 
-            NegativePrompt = T2IParamTypes.Register<string>(new("SD Negative Prompt", "Negative prompt for inpainting. Uses main negative prompt if empty.",
+            NegativePrompt = T2IParamTypes.Register<string>(new("SD Negative Prompt", "Negative prompt for inpainting. Uses main prompt if empty.",
                 "", Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_negative_prompt", OrderPriority: 130, ViewType: ParamViewType.PROMPT));
 
-            Seed = T2IParamTypes.Register<long>(new("SD Seed", "Inpainting seed. -1 for random. Does not affect detection.",
+            Seed = T2IParamTypes.Register<long>(new("SD Seed", "Inpainting seed. -1 for noise consistent with main image seed, 0 for a new random seed for each inpaint, or specify a fixed seed.",
                 "-1", Min: -1, Max: long.MaxValue, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_seed", OrderPriority: 150));
 
             Checkpoint = T2IParamTypes.Register<T2IModel>(new("SD Checkpoint", "Override Checkpoint: Use a different base model for inpainting.",
                 null, Toggleable: true, Group: Group, FeatureFlag: "comfyui",
                 Subtype: "Stable-Diffusion", ChangeWeight: 9, ID: "sdetailer_checkpoint", OrderPriority: 160,
-                GetValues: (session) => Program.T2IModelSets["Stable-Diffusion"].ListModelNamesFor(session)));
+                GetValues: (session) => {
+                    var models = Program.T2IModelSets["Stable-Diffusion"].ListModelNamesFor(session);
+                    return models.Where(m => m != "(None)" && m != null)
+                                 .Select(m => T2IParamTypes.CleanModelName(m))
+                                 .Distinct()
+                                 .ToList();
+                }));
 
             VAE = T2IParamTypes.Register<T2IModel>(new("SD VAE", "Override VAE: Use a different VAE for inpainting. 'Automatic' uses default.",
                 null, Toggleable: true, Group: Group,
                 FeatureFlag: "comfyui", Subtype: "VAE", ChangeWeight: 7, ID: "sdetailer_vae", OrderPriority: 170,
-                GetValues: (session) => Program.T2IModelSets["VAE"].ListModelNamesFor(session)));
+                GetValues: (session) => {
+                    var models = Program.T2IModelSets["VAE"].ListModelNamesFor(session);
+                    return models.Where(m => m != "(None)" && m != null)
+                                 .Select(m => T2IParamTypes.CleanModelName(m))
+                                 .Distinct()
+                                 .ToList();
+                }));
 
-            const string NoneSamplerPlaceholder = "(None)";
             Sampler = T2IParamTypes.Register<string>(new("SD Sampler", "Override Sampler: Use a different sampler for inpainting.",
-                NoneSamplerPlaceholder,
+                null,
                 Toggleable: true, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_sampler", OrderPriority: 180,
                 GetValues: (session) => {
                     T2IParamType samplerType = ComfyUIBackendExtension.SamplerParam?.Type;
                     if (samplerType?.GetValues != null) {
                         try {
-                            return [NoneSamplerPlaceholder, .. samplerType.GetValues(session)];
+                            return samplerType.GetValues(session);
                         }
                         catch { }
                     }
-                    return [NoneSamplerPlaceholder];
+                    return [];
                 }));
 
-            const string NoneSchedulerPlaceholder = "(None)";
             Scheduler = T2IParamTypes.Register<string>(new("SD Scheduler", "Override Scheduler: Use a different scheduler specifically for the inpainting step.",
-                NoneSchedulerPlaceholder,
+                null,
                 Toggleable: true, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_scheduler", OrderPriority: 185,
                 GetValues: (session) => {
                     T2IParamType schedulerType = ComfyUIBackendExtension.SchedulerParam?.Type;
                     if (schedulerType?.GetValues != null) {
                         try {
-                            return [NoneSchedulerPlaceholder, .. schedulerType.GetValues(session)];
+                            return schedulerType.GetValues(session);
                         }
                         catch { }
                     }
-                    return [NoneSchedulerPlaceholder];
+                    return [];
                 }));
 
             Steps = T2IParamTypes.Register<int>(new("SD Steps", "Override Steps: Use different sampling steps for inpainting.", "28",
@@ -165,12 +177,6 @@ namespace SDetailerExtension
 
             CFGScale = T2IParamTypes.Register<float>(new("SD CFG Scale", "Override CFG Scale: Use different prompt guidance for inpainting.", "7.0",
                 Min: 0.0f, Max: 30.0f, Step: 0.5f, Toggleable: true, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_cfg_scale", OrderPriority: 200));
-
-            InpaintWidth = T2IParamTypes.Register<int>(new("SD Width", "Override Inpainting Width: Target width for the inpainted patch generation. Defaults to main width or 512 if disabled.", "512",
-                Min: 64, Max: 2048, Step: 4, Toggleable: true, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_width", OrderPriority: 210));
-
-            InpaintHeight = T2IParamTypes.Register<int>(new("SD Height", "Override Inpainting Height: Target height for the inpainted patch generation. Defaults to main height or 512 if disabled.", "512",
-                Min: 64, Max: 2048, Step: 4, Toggleable: true, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_height", OrderPriority: 220));
 
             WorkflowGenerator.AddStep(g =>
             {
@@ -185,7 +191,7 @@ namespace SDetailerExtension
                 }
 
                 string detectionModel = g.UserInput.Get(DetectionModel);
-                if (detectionModel == "(None)")
+                if (string.IsNullOrEmpty(detectionModel) || detectionModel == "(None)")
                 {
                     return;
                 }
@@ -205,21 +211,17 @@ namespace SDetailerExtension
                 string negativePromptText = g.UserInput.Get(NegativePrompt, "");
                 int steps = g.UserInput.TryGet(Steps, out int stepsVal) ? stepsVal : g.UserInput.Get(T2IParamTypes.Steps);
                 float cfg = g.UserInput.TryGet(CFGScale, out float cfgVal) ? cfgVal : (float)g.UserInput.Get(T2IParamTypes.CFGScale);
-                int width = g.UserInput.TryGet(InpaintWidth, out int wVal) ? wVal : g.UserInput.GetImageWidth(512);
-                int height = g.UserInput.TryGet(InpaintHeight, out int hVal) ? hVal : g.UserInput.GetImageHeight(512);
                 string sortOrder = maskFilterMethod == "area" ? "largest-smallest" : "left-right";
 
                 JArray modelInput = g.FinalModel;
                 JArray clipInput = g.FinalClip;
                 JArray vaeInput = g.FinalVae;
                 string sdLoaderNode = null;
-                bool separateVaeUsed = false;
 
                 if (g.UserInput.TryGet(VAE, out T2IModel vaeModel) && vaeModel != null)
                 {
                     string vaeLoaderNode = g.CreateNode("VAELoader", new JObject { ["vae_name"] = vaeModel.Name });
                     vaeInput = new JArray { vaeLoaderNode, 0 };
-                    separateVaeUsed = true;
                 }
 
                 if (g.UserInput.TryGet(Checkpoint, out T2IModel sdModel) && sdModel != null)
@@ -227,10 +229,6 @@ namespace SDetailerExtension
                     sdLoaderNode = g.CreateNode("CheckpointLoaderSimple", new JObject { ["ckpt_name"] = sdModel.Name });
                     modelInput = new JArray { sdLoaderNode, 0 };
                     clipInput = new JArray { sdLoaderNode, 1 };
-                    if (!separateVaeUsed)
-                    {
-                        vaeInput = new JArray { sdLoaderNode, 2 };
-                    }
                 }
 
                 JArray lastNode = g.FinalImageOut;
@@ -240,7 +238,7 @@ namespace SDetailerExtension
                     ["image"] = lastNode,
                     ["detection_model"] = detectionModel,
                     ["confidence_threshold"] = confidenceThreshold,
-                    ["class_filter"] = "",
+                    ["class_filter"] = g.UserInput.Get(ClassFilter, ""),
                     ["kernel_size"] = dilateErode,
                     ["x_offset"] = xOffset,
                     ["y_offset"] = yOffset,
@@ -255,14 +253,8 @@ namespace SDetailerExtension
                 string defaultSampler = g.UserInput.Get(ComfyUIBackendExtension.SamplerParam, "euler");
                 string defaultScheduler = g.UserInput.Get(ComfyUIBackendExtension.SchedulerParam, "normal");
 
-                const string NoneSamplerPlaceholder = "(None)";
-                const string NoneSchedulerPlaceholder = "(None)";
-
-                string selectedSampler = g.UserInput.TryGet(Sampler, out string samplerVal) ? samplerVal : NoneSamplerPlaceholder;
-                string selectedScheduler = g.UserInput.TryGet(Scheduler, out string schedulerVal) ? schedulerVal : NoneSchedulerPlaceholder;
-
-                string finalSampler = (!string.IsNullOrEmpty(selectedSampler) && selectedSampler != NoneSamplerPlaceholder) ? selectedSampler : defaultSampler;
-                string finalScheduler = (!string.IsNullOrEmpty(selectedScheduler) && selectedScheduler != NoneSchedulerPlaceholder) ? selectedScheduler : defaultScheduler;
+                string finalSampler = g.UserInput.TryGet(Sampler, out string samplerVal) && samplerVal != null ? samplerVal : defaultSampler;
+                string finalScheduler = g.UserInput.TryGet(Scheduler, out string schedulerVal) && schedulerVal != null ? schedulerVal : defaultScheduler;
 
                 JArray positiveCond = promptText == "" ? g.FinalPrompt : g.CreateConditioning(promptText, g.FinalClip, g.FinalLoadedModel, true);
                 JArray negativeCond = negativePromptText == "" ? g.FinalNegativePrompt : g.CreateConditioning(negativePromptText, g.FinalClip, g.FinalLoadedModel, false);
