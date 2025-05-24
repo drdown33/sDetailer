@@ -280,11 +280,11 @@ namespace SDetailerExtension
                 });
                 JArray thresholdedMaskOutput1 = new JArray { swarmMaskThresholdNode, 0 };
 
-                // 5. SwarmMaskBounds - Corrected parameter name to "grow"
+                // 5. SwarmMaskBounds 
                 string maskBoundsNode = g.CreateNode("SwarmMaskBounds", new JObject()
                 {
                     ["mask"] = thresholdedMaskOutput1,
-                    ["grow"] = 16 // Corrected from "padding", value from SwarmSegWorkflow.json node 104 and internal code 'oversize'
+                    ["grow"] = 16 
                 });
                 JArray boundsX = new JArray { maskBoundsNode, 0 };
                 JArray boundsY = new JArray { maskBoundsNode, 1 };
@@ -425,11 +425,11 @@ namespace SDetailerExtension
                 });
                 JArray scaledDetailedImageOutput = new JArray { imageScaleBackNode, 0 };
 
-                // 15. ThresholdMask 
+                // 15. ThresholdMask - Corrected parameter name to "value"
                 string thresholdMaskNode2 = g.CreateNode("ThresholdMask", new JObject()
                 {
                     ["mask"] = croppedMaskOutput, 
-                    ["threshold"] = 0.0f 
+                    ["value"] = 0.0f // Corrected from "threshold", value from SwarmSegWorkflow.json node 114
                 });
                 JArray finalCompositeMask = new JArray { thresholdMaskNode2, 0 };
                 
