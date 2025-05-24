@@ -215,8 +215,8 @@ namespace SDetailerExtension
                     return;
                 }
 
-                float yoloThreshold = g.UserInput.Get(ConfidenceThreshold, 0.3f); // Renamed for clarity, maps to SwarmYoloDetection's "threshold"
-                string yoloClassFilter = g.UserInput.Get(ClassFilter, ""); // Renamed for clarity, maps to SwarmYoloDetection's "class_filter"
+                float yoloThreshold = g.UserInput.Get(ConfidenceThreshold, 0.3f); 
+                string yoloClassFilter = g.UserInput.Get(ClassFilter, ""); 
                 string maskFilterMethodVal = g.UserInput.Get(MaskFilterMethod, "area");
                 string yoloSortOrder = "left-right"; 
                 if (maskFilterMethodVal == "area") {
@@ -224,34 +224,29 @@ namespace SDetailerExtension
                 } else if (maskFilterMethodVal == "confidence") {
                     yoloSortOrder = "left-right"; 
                 }
-
-                // SwarmYoloDetection takes 'index'. 0 means no specific index filter / process all (respecting TopK if that's a separate mechanism).
-                // If SkipIndices is provided, try to use the first one as a 1-based index.
+                
                 int yoloIndex = 0; 
                 string skipIndicesVal = g.UserInput.Get(SkipIndices, "");
                 if (!string.IsNullOrWhiteSpace(skipIndicesVal)) {
                     var firstIndexStr = skipIndicesVal.Split(',')[0].Trim();
                     if (int.TryParse(firstIndexStr, out int parsedIndex)) {
-                        if (parsedIndex > 0) { // Assuming SwarmYoloDetection's 'index' is 1-based if specific.
+                        if (parsedIndex > 0) { 
                             yoloIndex = parsedIndex; 
                         }
                     }
                 }
-                // Note: MaskTopK is a sDetailer param. SwarmYoloDetection in SwarmSegWorkflow doesn't show a direct 'top_k' input.
-                // It might be handled by 'index' (if index > 0, only that one?) or internally.
-                // For now, MaskTopK from UI isn't directly mapped if yoloIndex takes precedence or isn't for TopK.
 
                 JArray initialImage = g.FinalImageOut; 
 
-                // 1. SwarmYoloDetection - Corrected parameter names
+                // 1. SwarmYoloDetection 
                 string yoloDetectNode = g.CreateNode("SwarmYoloDetection", new JObject()
                 {
                     ["image"] = initialImage,
                     ["model_name"] = detectionModelName,
-                    ["threshold"] = yoloThreshold,         // Corrected from 'confidence'
-                    ["class_filter"] = yoloClassFilter,    // Corrected from 'filter_by_label'
+                    ["threshold"] = yoloThreshold,         
+                    ["class_filter"] = yoloClassFilter,    
                     ["sort_order"] = yoloSortOrder, 
-                    ["index"] = yoloIndex                  // Corrected from 'filter_by_index'
+                    ["index"] = yoloIndex                  
                 });
                 JArray yoloMaskOutput = new JArray { yoloDetectNode, 0 };
 
@@ -261,7 +256,7 @@ namespace SDetailerExtension
                 {
                     ["mask"] = yoloMaskOutput,
                     ["blur_radius"] = blurRadius,
-                    ["sigma_ratio"] = 1.0f // Matches SwarmSegWorkflow.json (node 101 sigma is 1.0, but name is sigma_ratio in widget)
+                    ["sigma_ratio"] = 1.0f 
                 });
                 JArray blurredMaskOutput = new JArray { maskBlurNode, 0 };
 
@@ -329,23 +324,28 @@ namespace SDetailerExtension
                 JArray scaledCroppedImageOutput = new JArray { imageScaleMPNode, 0 };
 
                 // --- Detailer KSampler Pass ---
-                JArray detailerModelInput = g.FinalModel;
-                JArray detailerClipInput = g.FinalClip;
-                JArray detailerVaeInput = g.FinalVae; 
+                JArray detailerModelInput_Link = g.FinalModel; // Link to the model node output
+                JArray detailerClipInput_Link = g.FinalClip;   // Link to the clip node output
+                JArray detailerVaeInput_Link = g.FinalVae;     // Link to the VAE node output
+                T2IModel detailerT2IModelInstance = g.FinalLoadedModel; // Actual T2IModel C# object
 
                 if (g.UserInput.TryGet(VAE, out T2IModel vaeModel) && vaeModel != null)
                 {
                     string vaeLoaderNode = g.CreateNode("VAELoader", new JObject { ["vae_name"] = vaeModel.Name });
-                    detailerVaeInput = new JArray { vaeLoaderNode, 0 };
+                    detailerVaeInput_Link = new JArray { vaeLoaderNode, 0 };
+                    // Note: detailerT2IModelInstance's VAE might not be updated here unless VAE param also implies changing the T2IModel's VAE property.
+                    // For CreateConditioning, the T2IModel primarily provides checkpoint/CLIP context. VAE is separate for KSampler.
                 }
 
                 if (g.UserInput.TryGet(Checkpoint, out T2IModel sdModel) && sdModel != null)
                 {
                     string sdLoaderNode = g.CreateNode("CheckpointLoaderSimple", new JObject { ["ckpt_name"] = sdModel.Name });
-                    detailerModelInput = new JArray { sdLoaderNode, 0 };
-                    detailerClipInput = new JArray { sdLoaderNode, 1 };
+                    detailerModelInput_Link = new JArray { sdLoaderNode, 0 };
+                    detailerClipInput_Link = new JArray { sdLoaderNode, 1 };
+                    detailerT2IModelInstance = sdModel; // Use the overridden T2IModel C# instance
+
                     if (!(g.UserInput.TryGet(VAE, out T2IModel explicitVaeModel) && explicitVaeModel != null)) {
-                         detailerVaeInput = new JArray { sdLoaderNode, 2 };
+                         detailerVaeInput_Link = new JArray { sdLoaderNode, 2 };
                     }
                 }
                 
@@ -353,7 +353,7 @@ namespace SDetailerExtension
                 string vaeEncodeNode = g.CreateNode("VAEEncode", new JObject()
                 {
                     ["pixels"] = scaledCroppedImageOutput,
-                    ["vae"] = detailerVaeInput
+                    ["vae"] = detailerVaeInput_Link
                 });
                 JArray detailerLatentInput = new JArray { vaeEncodeNode, 0 };
 
@@ -368,15 +368,16 @@ namespace SDetailerExtension
                 // 11. DifferentialDiffusion 
                 string diffDiffusionNode = g.CreateNode("DifferentialDiffusion", new JObject()
                 {
-                    ["model"] = detailerModelInput
+                    ["model"] = detailerModelInput_Link // Pass the link to the model
                 });
-                JArray diffusedModelForDetailer = new JArray { diffDiffusionNode, 0 };
+                JArray diffusedModelForDetailer_Link = new JArray { diffDiffusionNode, 0 }; // Link to the diffused model output
                 
                 string detailerPromptText = g.UserInput.Get(Prompt, "");
                 string detailerNegativePromptText = g.UserInput.Get(NegativePrompt, "");
                 
-                JArray detailerPositiveCond = detailerPromptText == "" ? g.FinalPrompt : g.CreateConditioning(detailerPromptText, detailerClipInput, true);
-                JArray detailerNegativeCond = detailerNegativePromptText == "" ? g.FinalNegativePrompt : g.CreateConditioning(detailerNegativePromptText, detailerClipInput, false);
+                // Corrected: Pass the T2IModel instance as the third argument
+                JArray detailerPositiveCond = detailerPromptText == "" ? g.FinalPrompt : g.CreateConditioning(detailerPromptText, detailerClipInput_Link, detailerT2IModelInstance, true);
+                JArray detailerNegativeCond = detailerNegativePromptText == "" ? g.FinalNegativePrompt : g.CreateConditioning(detailerNegativePromptText, detailerClipInput_Link, detailerT2IModelInstance, false);
 
                 int detailerSteps = g.UserInput.TryGet(Steps, out int stepsVal) ? stepsVal : g.UserInput.Get(T2IParamTypes.Steps);
                 float detailerCfg = g.UserInput.TryGet(CFGScale, out float cfgVal) ? cfgVal : (float)g.UserInput.Get(T2IParamTypes.CFGScale);
@@ -384,30 +385,27 @@ namespace SDetailerExtension
                 string detailerSchedulerName = g.UserInput.TryGet(Scheduler, out string schedulerVal) && schedulerVal != null ? schedulerVal : g.UserInput.Get(ComfyUIBackendExtension.SchedulerParam, "normal");
                 long detailerSeed = g.UserInput.Get(Seed, -1L);
                 float currentDenoisingStrength = g.UserInput.Get(DenoisingStrength, 0.4f);
-
-                // Corrected KSampler denoise/start_at_step logic
+                
                 int ksampler_total_steps = detailerSteps;
                 int ksampler_start_at_step = (int)Math.Floor(ksampler_total_steps * (1.0f - currentDenoisingStrength));
-                // Ensure start_at_step is not greater than total_steps -1, and not negative
                 ksampler_start_at_step = Math.Max(0, Math.Min(ksampler_total_steps - 1, ksampler_start_at_step));
 
-
-                // 12. SwarmKSampler (Detailer Pass) - Corrected parameters
+                // 12. SwarmKSampler (Detailer Pass) 
                 string detailerSamplerNode = g.CreateNode("SwarmKSampler", new JObject()
                 {
-                    ["model"] = diffusedModelForDetailer, 
+                    ["model"] = diffusedModelForDetailer_Link, // Use the link to the (potentially diffused) model
                     ["positive"] = detailerPositiveCond,
                     ["negative"] = detailerNegativeCond,
                     ["latent_image"] = maskedLatentForDetailer,
                     ["seed"] = detailerSeed,
-                    ["steps"] = ksampler_total_steps, // Total steps for this pass
+                    ["steps"] = ksampler_total_steps, 
                     ["cfg"] = detailerCfg,
                     ["sampler_name"] = detailerSamplerName,
                     ["scheduler"] = detailerSchedulerName,
-                    ["denoise"] = 1.0f, // Denoise fully over the active steps (total_steps - start_at_step)
-                    ["start_at_step"] = ksampler_start_at_step, // Calculated start step
-                    ["end_at_step"] = ksampler_total_steps, // End at total steps
-                    ["preview_method"] = "enable", // Matches SwarmSegWorkflow.json node 111
+                    ["denoise"] = 1.0f, 
+                    ["start_at_step"] = ksampler_start_at_step, 
+                    ["end_at_step"] = ksampler_total_steps, 
+                    ["preview_method"] = "enable", 
                 });
                 JArray detailedLatentOutput = new JArray { detailerSamplerNode, 0 };
 
@@ -415,7 +413,7 @@ namespace SDetailerExtension
                 string vaeDecodeNode2 = g.CreateNode("VAEDecode", new JObject()
                 {
                     ["samples"] = detailedLatentOutput,
-                    ["vae"] = detailerVaeInput 
+                    ["vae"] = detailerVaeInput_Link 
                 });
                 JArray detailedImageOutput = new JArray { vaeDecodeNode2, 0 };
 
