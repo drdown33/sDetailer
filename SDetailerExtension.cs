@@ -317,9 +317,9 @@ namespace SDetailerExtension
                 string imageScaleMPNode = g.CreateNode("SwarmImageScaleForMP", new JObject()
                 {
                     ["image"] = croppedImageOutput,
-                    ["target_width"] = 1024, 
-                    ["target_height"] = 1024, 
-                    ["keep_proportion"] = true 
+                    ["width"] = 1024,          
+                    ["height"] = 1024,         
+                    ["can_shrink"] = true      
                 });
                 JArray scaledCroppedImageOutput = new JArray { imageScaleMPNode, 0 };
 
@@ -414,22 +414,22 @@ namespace SDetailerExtension
                 });
                 JArray detailedImageOutput = new JArray { vaeDecodeNode2, 0 };
 
-                // 14. ImageScale 
+                // 14. ImageScale - Corrected parameter name to "method"
                 string imageScaleBackNode = g.CreateNode("ImageScale", new JObject()
                 {
                     ["image"] = detailedImageOutput,
-                    ["upscale_method"] = "lanczos", 
+                    ["method"] = "lanczos", // Corrected from "upscale_method"
                     ["width"] = boundsWidth,    
                     ["height"] = boundsHeight,  
                     ["crop"] = "disabled"       
                 });
                 JArray scaledDetailedImageOutput = new JArray { imageScaleBackNode, 0 };
 
-                // 15. ThresholdMask - Corrected parameter name to "value"
+                // 15. ThresholdMask 
                 string thresholdMaskNode2 = g.CreateNode("ThresholdMask", new JObject()
                 {
                     ["mask"] = croppedMaskOutput, 
-                    ["value"] = 0.0f // Corrected from "threshold", value from SwarmSegWorkflow.json node 114
+                    ["value"] = 0.0f 
                 });
                 JArray finalCompositeMask = new JArray { thresholdMaskNode2, 0 };
                 
