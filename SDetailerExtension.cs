@@ -224,21 +224,41 @@ namespace SDetailerExtension
                 float confidence = g.UserInput.Get(ConfidenceThreshold, 0.3f);
                 string classFilterVal = g.UserInput.Get(ClassFilter, "");
                 string maskFilterMethodVal = g.UserInput.Get(MaskFilterMethod, "area");
-                string sortOrder = maskFilterMethodVal == "area" ? "largest-smallest" : "left-right"; // As per original sDetailer logic
-                
+                // SwarmYoloDetection uses 'sort_order' with values like "left-right", "largest-smallest" etc.
+                // Map sDetailer's 'area'/'confidence' to a compatible sort_order.
+                // 'area' -> 'largest-smallest' seems like a direct map.
+                // 'confidence' doesn't have a direct match in SwarmYoloDetection's typical sort orders.
+                // Defaulting to 'left-right' or 'largest-smallest' if confidence is chosen might be necessary.
+                // SwarmSegWorkflow.json for node 100 (SwarmYoloDetection) uses "left-right". Let's see if we can map.
+                // For now, let's stick to the mapping from original sDetailer logic if possible, or a fixed value from SwarmSegWorkflow.
+                string sortOrder = "left-right"; // Default from SwarmSegWorkflow node 100
+                if (maskFilterMethodVal == "area") {
+                    sortOrder = "largest-smallest";
+                } else if (maskFilterMethodVal == "confidence") {
+                    // SwarmYoloDetection might not have a direct "confidence" sort.
+                    // We can keep 'left-right' or choose another, e.g., 'largest-smallest' as a fallback.
+                    // Or, if SwarmYoloDetection *does* sort by confidence internally before applying TopK based on another sort, this might be fine.
+                    // For now, let's use "left-right" as per SwarmSegWorkflow, as confidence sorting might happen before this node or not be available.
+                    sortOrder = "left-right";
+                }
+
+
                 // For SwarmYoloDetection, filter_by_index is an int.
-                // SkipIndices is comma-separated 1-based. For simplicity, we'll use 0 (no specific index filter)
-                // or try to parse the first one if provided. SwarmYoloDetection might only take one.
-                // The SwarmSegWorkflow.json shows '0' for filter_by_index.
-                int filterByIndex = 0;
+                // SkipIndices is comma-separated 1-based.
+                // SwarmSegWorkflow.json shows '0' for filter_by_index in node 100, meaning "don't filter by a specific index".
+                int filterByIndex = 0; // Default to "no specific index filter"
                 string skipIndicesVal = g.UserInput.Get(SkipIndices, "");
                 if (!string.IsNullOrWhiteSpace(skipIndicesVal)) {
-                    var firstIndex = skipIndicesVal.Split(',')[0].Trim();
-                    if (int.TryParse(firstIndex, out int parsedIndex) && parsedIndex > 0) {
-                        // filter_by_index in SwarmYoloDetection seems to be 0-based if it's a selection, or a flag.
-                        // Given SwarmSegWorkflow uses 0, let's stick to that unless a clear mapping for SkipIndices is defined for SwarmYoloDetection.
-                        // For now, we will use the hardcoded 0 from SwarmSegWorkflow.json to match its behavior.
-                        // filterByIndex = parsedIndex -1; // If it were 0-based selection
+                    var firstIndexStr = skipIndicesVal.Split(',')[0].Trim();
+                    if (int.TryParse(firstIndexStr, out int parsedIndex)) {
+                        if (parsedIndex > 0) {
+                             // If SwarmYoloDetection expects 1-based index for filtering a single detection:
+                             // filterByIndex = parsedIndex;
+                             // If it expects 0-based:
+                             // filterByIndex = parsedIndex - 1;
+                             // However, SwarmSegWorkflow uses 0, implying it's more of a "pick first/best" or "no specific index" flag.
+                             // Let's keep it 0 to match SwarmSegWorkflow unless the behavior of SwarmYoloDetection's filter_by_index is clarified.
+                        }
                     }
                 }
 
@@ -252,8 +272,8 @@ namespace SDetailerExtension
                     ["model_name"] = detectionModelName,
                     ["confidence"] = confidence,
                     ["filter_by_label"] = classFilterVal,
-                    ["sort_order"] = sortOrder, // "left-right" is used in SwarmSegWorkflow.json node 100
-                    ["filter_by_index"] = filterByIndex // SwarmSegWorkflow.json uses 0 for node 100
+                    ["sort_order"] = sortOrder, 
+                    ["filter_by_index"] = filterByIndex 
                 });
                 JArray yoloMaskOutput = new JArray { yoloDetectNode, 0 };
 
@@ -269,7 +289,11 @@ namespace SDetailerExtension
 
                 // 3. GrowMask
                 int expand = g.UserInput.Get(DilateErode, 4);
-                if (expand < 0) expand = 0; // GrowMask 'expand' should be non-negative
+                // GrowMask 'expand' should be non-negative. If DilateErode is negative (erode), this won't directly map.
+                // The original sDetailer handles erode in its python node. GrowMask only expands.
+                // For simplicity, if erode is requested, we'll set expand to 0. Or, a different node for erosion would be needed.
+                // Let's assume DilateErode >= 0 for GrowMask.
+                if (expand < 0) expand = 0; 
                 string growMaskNode = g.CreateNode("GrowMask", new JObject()
                 {
                     ["mask"] = blurredMaskOutput,
@@ -380,8 +404,9 @@ namespace SDetailerExtension
                 // Conditioning for Detailer KSampler
                 string detailerPromptText = g.UserInput.Get(Prompt, "");
                 string detailerNegativePromptText = g.UserInput.Get(NegativePrompt, "");
-                JArray detailerPositiveCond = detailerPromptText == "" ? g.FinalPrompt : g.CreateConditioning(detailerPromptText, detailerClipInput, diffusedModelForDetailer, true); // Use detailer's CLIP and Model
-                JArray detailerNegativeCond = detailerNegativePromptText == "" ? g.FinalNegativePrompt : g.CreateConditioning(detailerNegativePromptText, detailerClipInput, diffusedModelForDetailer, false); // Use detailer's CLIP and Model
+                // Corrected: Use the simpler CreateConditioning overload
+                JArray detailerPositiveCond = detailerPromptText == "" ? g.FinalPrompt : g.CreateConditioning(detailerPromptText, detailerClipInput, positive: true);
+                JArray detailerNegativeCond = detailerNegativePromptText == "" ? g.FinalNegativePrompt : g.CreateConditioning(detailerNegativePromptText, detailerClipInput, positive: false);
 
                 // Detailer KSampler parameters
                 int detailerSteps = g.UserInput.TryGet(Steps, out int stepsVal) ? stepsVal : g.UserInput.Get(T2IParamTypes.Steps);
@@ -393,14 +418,9 @@ namespace SDetailerExtension
 
 
                 // 12. SwarmKSampler (Detailer Pass)
-                // SwarmSegWorkflow.json node 111 uses start_at_step = 10, and total steps = 25.
-                // This implies a fixed denoising behavior. If we want to use DenoisingStrength param:
-                // int detailer_start_at_step = (int)Math.Round(detailerSteps * (1.0f - currentDenoisingStrength));
-                // However, to match SwarmSegWorkflow.json (node 111), we'll use its specific values if DenoisingStrength isn't the primary control there.
-                // Node 111 has steps=25, start_at_step=10. Let's use the sDetailer Steps and DenoisingStrength.
                 string detailerSamplerNode = g.CreateNode("SwarmKSampler", new JObject()
                 {
-                    ["model"] = diffusedModelForDetailer,
+                    ["model"] = diffusedModelForDetailer, // Model output from DifferentialDiffusion
                     ["positive"] = detailerPositiveCond,
                     ["negative"] = detailerNegativeCond,
                     ["latent_image"] = maskedLatentForDetailer,
@@ -409,14 +429,10 @@ namespace SDetailerExtension
                     ["cfg"] = detailerCfg,
                     ["sampler_name"] = detailerSamplerName,
                     ["scheduler"] = detailerSchedulerName,
-                    ["denoise"] = currentDenoisingStrength, // Standard KSampler denoise
-                    // SwarmSegWorkflow node 111 specific values that might be part of SwarmKSampler's internal defaults or widgets:
-                    ["start_at_step"] = 0, // Standard KSampler usually starts at 0 if denoise is used. Node 111 has 10.
-                                           // If SwarmKSampler uses start_at_step for denoise, then:
-                                           // ["start_at_step"] = (int)Math.Max(0, detailerSteps - Math.Round(detailerSteps * currentDenoisingStrength)),
-                    ["end_at_step"] = 10000, // Default end,
-                    ["preview_method"] = "disable", // Common for detailer passes
-                    // Other SwarmKSampler params from JSON if needed: "denoise_output", "disable_noise", "default_variations", "width_for_variations"
+                    ["denoise"] = currentDenoisingStrength, 
+                    ["start_at_step"] = 0, 
+                    ["end_at_step"] = 10000, 
+                    ["preview_method"] = "disable", 
                 });
                 JArray detailedLatentOutput = new JArray { detailerSamplerNode, 0 };
 
@@ -440,7 +456,6 @@ namespace SDetailerExtension
                 JArray scaledDetailedImageOutput = new JArray { imageScaleBackNode, 0 };
 
                 // 15. ThresholdMask (on the cropped mask from step 7, for compositing)
-                // This is node 114 in SwarmSegWorkflow, using the output of CropMask (node 106)
                 string thresholdMaskNode2 = g.CreateNode("ThresholdMask", new JObject()
                 {
                     ["mask"] = croppedMaskOutput, // Mask from CropMask (node 106)
