@@ -250,13 +250,13 @@ namespace SDetailerExtension
                 });
                 JArray yoloMaskOutput = new JArray { yoloDetectNode, 0 };
 
-                // 2. SwarmMaskBlur - Corrected parameter name to "sigma"
+                // 2. SwarmMaskBlur 
                 int blurRadius = g.UserInput.Get(MaskBlur, 4);
                 string maskBlurNode = g.CreateNode("SwarmMaskBlur", new JObject()
                 {
                     ["mask"] = yoloMaskOutput,
                     ["blur_radius"] = blurRadius,
-                    ["sigma"] = 1.0f // Corrected from sigma_ratio to sigma, matching internal code and likely node expectation
+                    ["sigma"] = 1.0f 
                 });
                 JArray blurredMaskOutput = new JArray { maskBlurNode, 0 };
 
@@ -271,12 +271,12 @@ namespace SDetailerExtension
                 });
                 JArray grownMaskOutput = new JArray { growMaskNode, 0 };
 
-                // 4. SwarmMaskThreshold
+                // 4. SwarmMaskThreshold - Corrected parameter names to "min" and "max"
                 string swarmMaskThresholdNode = g.CreateNode("SwarmMaskThreshold", new JObject()
                 {
                     ["mask"] = grownMaskOutput,
-                    ["min_threshold"] = 0.01f, 
-                    ["max_threshold"] = 1.0f  
+                    ["min"] = 0.01f, // Corrected from min_threshold, value from SwarmSegWorkflow.json node 103
+                    ["max"] = 1.0f   // Corrected from max_threshold, value from SwarmSegWorkflow.json node 103
                 });
                 JArray thresholdedMaskOutput1 = new JArray { swarmMaskThresholdNode, 0 };
 
