@@ -20,13 +20,13 @@ namespace SDetailerExtension
         public static T2IRegisteredParam<float> ConfidenceThreshold;
         public static T2IRegisteredParam<string> MaskFilterMethod;
         public static T2IRegisteredParam<string> ClassFilter;
-        public static T2IRegisteredParam<int> MaskTopK; // Note: SwarmYoloDetection in SwarmSegWorkflow doesn't directly use TopK. Behavior might change.
-        public static T2IRegisteredParam<float> MinRatio; // Note: SwarmYoloDetection in SwarmSegWorkflow doesn't directly use MinRatio.
-        public static T2IRegisteredParam<float> MaxRatio; // Note: SwarmYoloDetection in SwarmSegWorkflow doesn't directly use MaxRatio.
+        public static T2IRegisteredParam<int> MaskTopK; 
+        public static T2IRegisteredParam<float> MinRatio; 
+        public static T2IRegisteredParam<float> MaxRatio; 
         public static T2IRegisteredParam<int> DilateErode;
         public static T2IRegisteredParam<int> XOffset; // Note: SwarmSegWorkflow structure doesn't have a direct XOffset node. This param might not have an effect.
         public static T2IRegisteredParam<int> YOffset; // Note: SwarmSegWorkflow structure doesn't have a direct YOffset node. This param might not have an effect.
-        public static T2IRegisteredParam<string> MaskMergeInvert; // Note: SwarmYoloDetection in SwarmSegWorkflow doesn't directly use this.
+        public static T2IRegisteredParam<string> MaskMergeInvert; 
         public static T2IRegisteredParam<int> MaskBlur;
         public static T2IRegisteredParam<float> DenoisingStrength;
         public static T2IRegisteredParam<string> Prompt;
@@ -38,7 +38,7 @@ namespace SDetailerExtension
         public static T2IRegisteredParam<string> Sampler;
         public static T2IRegisteredParam<long> Seed;
         public static T2IRegisteredParam<string> Scheduler;
-        public static T2IRegisteredParam<string> SkipIndices; // Note: SwarmYoloDetection takes 'filter_by_index' (single int). Mapping might be limited.
+        public static T2IRegisteredParam<string> SkipIndices; 
 
         // Helper to get model path string
         private static JToken GetModelPath(T2IModel model, JToken defaultValue)
@@ -56,34 +56,29 @@ namespace SDetailerExtension
             ComfyUISelfStartBackend.CustomNodePaths.Add(nodeFolder);
             Logs.Init($"Adding {nodeFolder} to CustomNodePaths");
 
-            // Register relevant SwarmUI nodes if they are not automatically available
-            // This ensures the workflow generator can find them.
-            // These are typically built-in or part of SwarmUI's Comfy backend.
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmYoloDetection"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmMaskBlur"] = "comfyui";
-            ComfyUIBackendExtension.NodeToFeatureMap["GrowMask"] = "comfyui"; // Core ComfyUI node
+            ComfyUIBackendExtension.NodeToFeatureMap["GrowMask"] = "comfyui"; 
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmMaskThreshold"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmMaskBounds"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmImageCrop"] = "comfyui";
-            ComfyUIBackendExtension.NodeToFeatureMap["CropMask"] = "comfyui"; // Might be a custom or specific Swarm node
+            ComfyUIBackendExtension.NodeToFeatureMap["CropMask"] = "comfyui"; 
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmImageScaleForMP"] = "comfyui";
-            ComfyUIBackendExtension.NodeToFeatureMap["VAEEncode"] = "comfyui"; // Core ComfyUI node
-            ComfyUIBackendExtension.NodeToFeatureMap["SetLatentNoiseMask"] = "comfyui"; // Core ComfyUI node
-            ComfyUIBackendExtension.NodeToFeatureMap["DifferentialDiffusion"] = "comfyui"; // SwarmUI specific
-            ComfyUIBackendExtension.NodeToFeatureMap["SwarmKSampler"] = "comfyui"; // SwarmUI KSampler
-            ComfyUIBackendExtension.NodeToFeatureMap["VAEDecode"] = "comfyui"; // Core ComfyUI node
-            ComfyUIBackendExtension.NodeToFeatureMap["ImageScale"] = "comfyui"; // Core ComfyUI node
-            ComfyUIBackendExtension.NodeToFeatureMap["ThresholdMask"] = "comfyui"; // Core ComfyUI node
+            ComfyUIBackendExtension.NodeToFeatureMap["VAEEncode"] = "comfyui"; 
+            ComfyUIBackendExtension.NodeToFeatureMap["SetLatentNoiseMask"] = "comfyui"; 
+            ComfyUIBackendExtension.NodeToFeatureMap["DifferentialDiffusion"] = "comfyui"; 
+            ComfyUIBackendExtension.NodeToFeatureMap["SwarmKSampler"] = "comfyui"; 
+            ComfyUIBackendExtension.NodeToFeatureMap["VAEDecode"] = "comfyui"; 
+            ComfyUIBackendExtension.NodeToFeatureMap["ImageScale"] = "comfyui"; 
+            ComfyUIBackendExtension.NodeToFeatureMap["ThresholdMask"] = "comfyui"; 
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmImageCompositeMaskedColorCorrecting"] = "comfyui";
         }
 
         public override void OnInit()
         {
-            // Keep original SDetailer custom node mappings in case they are used elsewhere or for fallback
             ComfyUIBackendExtension.NodeToFeatureMap["SDetailerDetect"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SDetailerInpaintHelper"] = "comfyui";
 
-            // Parameter registrations (unchanged from original sDetailer)
             DetectionModel = T2IParamTypes.Register<string>(new("SD Detection Model", "Select detection model for inpainting. Models go in 'SwarmUI/Models/yolov8'.",
                 "(None)",
                 Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_detection_model", OrderPriority: 10,
@@ -112,7 +107,7 @@ namespace SDetailerExtension
             MaxRatio = T2IParamTypes.Register<float>(new("SD Max Area Ratio", "Ignore masks larger than this fraction of image area (e.g., 0.9 for 90%).", "1.0",
                 Min: 0.0f, Max: 1.0f, Step: 0.1f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_max_ratio", OrderPriority: 60));
  
-            SkipIndices = T2IParamTypes.Register<string>(new("SD Skip Indices", "Comma-separated mask indices (1-based) to skip after sorting (e.g., '1,3'). Used for 'filter_by_index' in SwarmYoloDetection (takes one int, 0=none).", "",
+            SkipIndices = T2IParamTypes.Register<string>(new("SD Skip Indices", "Comma-separated mask indices (1-based) to skip after sorting (e.g., '1,3'). Maps to 'index' in SwarmYoloDetection (0=none, or specific 1-based index).", "",
                 Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_skip_indices", OrderPriority: 65));
  
             XOffset = T2IParamTypes.Register<int>(new("SD X Offset", "Shift mask horizontally (pixels). Positive = right, negative = left. (May not apply with SwarmSegWorkflow structure)", "0",
@@ -134,7 +129,7 @@ namespace SDetailerExtension
             DenoisingStrength = T2IParamTypes.Register<float>(new("SD Denoising Strength", "How much original image is changed in mask (0 = none, 1 = full replace). For detailer KSampler.", "0.4",
                 Min: 0.0f, Max: 1.0f, Step: 0.05f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_denoising_strength", OrderPriority: 112));
 
-            ConfidenceThreshold = T2IParamTypes.Register<float>(new("SD Confidence Threshold", "Min detection score (0-1) to consider an object found. Lower = more detections.", "0.3",
+            ConfidenceThreshold = T2IParamTypes.Register<float>(new("SD Confidence Threshold", "Min detection score (0-1) to consider an object found. Lower = more detections. Maps to 'threshold' in SwarmYoloDetection.", "0.3",
                 Min: 0.05f, Max: 1.0f, Step: 0.05f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_confidence_threshold", OrderPriority: 115));
 
             Prompt = T2IParamTypes.Register<string>(new("SD Prompt", "Positive prompt for inpainting. Uses main prompt if empty.",
@@ -209,7 +204,7 @@ namespace SDetailerExtension
                     return;
                 }
 
-                if (!g.UserInput.TryGet(DetectionModel, out _)) // Check if sDetailer group is enabled
+                if (!g.UserInput.TryGet(DetectionModel, out _)) 
                 {
                     return;
                 }
@@ -220,60 +215,43 @@ namespace SDetailerExtension
                     return;
                 }
 
-                // Get common parameters
-                float confidence = g.UserInput.Get(ConfidenceThreshold, 0.3f);
-                string classFilterVal = g.UserInput.Get(ClassFilter, "");
+                float yoloThreshold = g.UserInput.Get(ConfidenceThreshold, 0.3f); // Renamed for clarity, maps to SwarmYoloDetection's "threshold"
+                string yoloClassFilter = g.UserInput.Get(ClassFilter, ""); // Renamed for clarity, maps to SwarmYoloDetection's "class_filter"
                 string maskFilterMethodVal = g.UserInput.Get(MaskFilterMethod, "area");
-                // SwarmYoloDetection uses 'sort_order' with values like "left-right", "largest-smallest" etc.
-                // Map sDetailer's 'area'/'confidence' to a compatible sort_order.
-                // 'area' -> 'largest-smallest' seems like a direct map.
-                // 'confidence' doesn't have a direct match in SwarmYoloDetection's typical sort orders.
-                // Defaulting to 'left-right' or 'largest-smallest' if confidence is chosen might be necessary.
-                // SwarmSegWorkflow.json for node 100 (SwarmYoloDetection) uses "left-right". Let's see if we can map.
-                // For now, let's stick to the mapping from original sDetailer logic if possible, or a fixed value from SwarmSegWorkflow.
-                string sortOrder = "left-right"; // Default from SwarmSegWorkflow node 100
+                string yoloSortOrder = "left-right"; 
                 if (maskFilterMethodVal == "area") {
-                    sortOrder = "largest-smallest";
+                    yoloSortOrder = "largest-smallest";
                 } else if (maskFilterMethodVal == "confidence") {
-                    // SwarmYoloDetection might not have a direct "confidence" sort.
-                    // We can keep 'left-right' or choose another, e.g., 'largest-smallest' as a fallback.
-                    // Or, if SwarmYoloDetection *does* sort by confidence internally before applying TopK based on another sort, this might be fine.
-                    // For now, let's use "left-right" as per SwarmSegWorkflow, as confidence sorting might happen before this node or not be available.
-                    sortOrder = "left-right";
+                    yoloSortOrder = "left-right"; 
                 }
 
-
-                // For SwarmYoloDetection, filter_by_index is an int.
-                // SkipIndices is comma-separated 1-based.
-                // SwarmSegWorkflow.json shows '0' for filter_by_index in node 100, meaning "don't filter by a specific index".
-                int filterByIndex = 0; // Default to "no specific index filter"
+                // SwarmYoloDetection takes 'index'. 0 means no specific index filter / process all (respecting TopK if that's a separate mechanism).
+                // If SkipIndices is provided, try to use the first one as a 1-based index.
+                int yoloIndex = 0; 
                 string skipIndicesVal = g.UserInput.Get(SkipIndices, "");
                 if (!string.IsNullOrWhiteSpace(skipIndicesVal)) {
                     var firstIndexStr = skipIndicesVal.Split(',')[0].Trim();
                     if (int.TryParse(firstIndexStr, out int parsedIndex)) {
-                        if (parsedIndex > 0) {
-                             // If SwarmYoloDetection expects 1-based index for filtering a single detection:
-                             // filterByIndex = parsedIndex;
-                             // If it expects 0-based:
-                             // filterByIndex = parsedIndex - 1;
-                             // However, SwarmSegWorkflow uses 0, implying it's more of a "pick first/best" or "no specific index" flag.
-                             // Let's keep it 0 to match SwarmSegWorkflow unless the behavior of SwarmYoloDetection's filter_by_index is clarified.
+                        if (parsedIndex > 0) { // Assuming SwarmYoloDetection's 'index' is 1-based if specific.
+                            yoloIndex = parsedIndex; 
                         }
                     }
                 }
+                // Note: MaskTopK is a sDetailer param. SwarmYoloDetection in SwarmSegWorkflow doesn't show a direct 'top_k' input.
+                // It might be handled by 'index' (if index > 0, only that one?) or internally.
+                // For now, MaskTopK from UI isn't directly mapped if yoloIndex takes precedence or isn't for TopK.
 
+                JArray initialImage = g.FinalImageOut; 
 
-                JArray initialImage = g.FinalImageOut; // This is the image after the main KSampler and VAEDecode
-
-                // 1. SwarmYoloDetection
+                // 1. SwarmYoloDetection - Corrected parameter names
                 string yoloDetectNode = g.CreateNode("SwarmYoloDetection", new JObject()
                 {
                     ["image"] = initialImage,
                     ["model_name"] = detectionModelName,
-                    ["confidence"] = confidence,
-                    ["filter_by_label"] = classFilterVal,
-                    ["sort_order"] = sortOrder, 
-                    ["filter_by_index"] = filterByIndex 
+                    ["threshold"] = yoloThreshold,         // Corrected from 'confidence'
+                    ["class_filter"] = yoloClassFilter,    // Corrected from 'filter_by_label'
+                    ["sort_order"] = yoloSortOrder, 
+                    ["index"] = yoloIndex                  // Corrected from 'filter_by_index'
                 });
                 JArray yoloMaskOutput = new JArray { yoloDetectNode, 0 };
 
@@ -283,22 +261,18 @@ namespace SDetailerExtension
                 {
                     ["mask"] = yoloMaskOutput,
                     ["blur_radius"] = blurRadius,
-                    ["sigma_ratio"] = 1.0f // From SwarmSegWorkflow.json node 101
+                    ["sigma_ratio"] = 1.0f // Matches SwarmSegWorkflow.json (node 101 sigma is 1.0, but name is sigma_ratio in widget)
                 });
                 JArray blurredMaskOutput = new JArray { maskBlurNode, 0 };
 
                 // 3. GrowMask
                 int expand = g.UserInput.Get(DilateErode, 4);
-                // GrowMask 'expand' should be non-negative. If DilateErode is negative (erode), this won't directly map.
-                // The original sDetailer handles erode in its python node. GrowMask only expands.
-                // For simplicity, if erode is requested, we'll set expand to 0. Or, a different node for erosion would be needed.
-                // Let's assume DilateErode >= 0 for GrowMask.
                 if (expand < 0) expand = 0; 
                 string growMaskNode = g.CreateNode("GrowMask", new JObject()
                 {
                     ["mask"] = blurredMaskOutput,
                     ["expand"] = expand,
-                    ["tapered_corners"] = true // From SwarmSegWorkflow.json node 102
+                    ["tapered_corners"] = true 
                 });
                 JArray grownMaskOutput = new JArray { growMaskNode, 0 };
 
@@ -306,8 +280,8 @@ namespace SDetailerExtension
                 string swarmMaskThresholdNode = g.CreateNode("SwarmMaskThreshold", new JObject()
                 {
                     ["mask"] = grownMaskOutput,
-                    ["min_threshold"] = 0.01f, // From SwarmSegWorkflow.json node 103
-                    ["max_threshold"] = 1.0f  // From SwarmSegWorkflow.json node 103
+                    ["min_threshold"] = 0.01f, 
+                    ["max_threshold"] = 1.0f  
                 });
                 JArray thresholdedMaskOutput1 = new JArray { swarmMaskThresholdNode, 0 };
 
@@ -315,7 +289,7 @@ namespace SDetailerExtension
                 string maskBoundsNode = g.CreateNode("SwarmMaskBounds", new JObject()
                 {
                     ["mask"] = thresholdedMaskOutput1,
-                    ["padding"] = 16 // From SwarmSegWorkflow.json node 104
+                    ["padding"] = 16 
                 });
                 JArray boundsX = new JArray { maskBoundsNode, 0 };
                 JArray boundsY = new JArray { maskBoundsNode, 1 };
@@ -325,7 +299,7 @@ namespace SDetailerExtension
                 // 6. SwarmImageCrop (on original image)
                 string imageCropNode = g.CreateNode("SwarmImageCrop", new JObject()
                 {
-                    ["image"] = initialImage, // Crop from the output of the main generation
+                    ["image"] = initialImage, 
                     ["x"] = boundsX,
                     ["y"] = boundsY,
                     ["width"] = boundsWidth,
@@ -336,43 +310,40 @@ namespace SDetailerExtension
                 // 7. CropMask (on thresholded mask)
                 string maskCropNode = g.CreateNode("CropMask", new JObject()
                 {
-                    ["mask"] = thresholdedMaskOutput1, // Crop the same mask that was fed to SwarmMaskBounds
+                    ["mask"] = thresholdedMaskOutput1, 
                     ["x"] = boundsX,
                     ["y"] = boundsY,
                     ["width"] = boundsWidth,
                     ["height"] = boundsHeight
                 });
-                JArray croppedMaskOutput = new JArray { maskCropNode, 0 }; // This mask is used for SetLatentNoiseMask and later for ThresholdMask -> Composite
+                JArray croppedMaskOutput = new JArray { maskCropNode, 0 }; 
 
-                // 8. SwarmImageScaleForMP (scale cropped image for detailer VAEEncode)
+                // 8. SwarmImageScaleForMP 
                 string imageScaleMPNode = g.CreateNode("SwarmImageScaleForMP", new JObject()
                 {
                     ["image"] = croppedImageOutput,
-                    ["target_width"] = 1024, // From SwarmSegWorkflow.json node 107
-                    ["target_height"] = 1024, // From SwarmSegWorkflow.json node 107
-                    ["keep_proportion"] = true // From SwarmSegWorkflow.json node 107
+                    ["target_width"] = 1024, 
+                    ["target_height"] = 1024, 
+                    ["keep_proportion"] = true 
                 });
                 JArray scaledCroppedImageOutput = new JArray { imageScaleMPNode, 0 };
 
                 // --- Detailer KSampler Pass ---
                 JArray detailerModelInput = g.FinalModel;
                 JArray detailerClipInput = g.FinalClip;
-                JArray detailerVaeInput = g.FinalVae; // VAE for encoding the cropped image & decoding the detailer output
+                JArray detailerVaeInput = g.FinalVae; 
 
-                // Override VAE for detailer pass if specified
                 if (g.UserInput.TryGet(VAE, out T2IModel vaeModel) && vaeModel != null)
                 {
                     string vaeLoaderNode = g.CreateNode("VAELoader", new JObject { ["vae_name"] = vaeModel.Name });
                     detailerVaeInput = new JArray { vaeLoaderNode, 0 };
                 }
 
-                // Override Checkpoint for detailer pass if specified
                 if (g.UserInput.TryGet(Checkpoint, out T2IModel sdModel) && sdModel != null)
                 {
                     string sdLoaderNode = g.CreateNode("CheckpointLoaderSimple", new JObject { ["ckpt_name"] = sdModel.Name });
                     detailerModelInput = new JArray { sdLoaderNode, 0 };
                     detailerClipInput = new JArray { sdLoaderNode, 1 };
-                    // If a new checkpoint is loaded, the VAE might also come from it unless detailerVaeInput was already overridden by SD VAE param
                     if (!(g.UserInput.TryGet(VAE, out T2IModel explicitVaeModel) && explicitVaeModel != null)) {
                          detailerVaeInput = new JArray { sdLoaderNode, 2 };
                     }
@@ -390,25 +361,23 @@ namespace SDetailerExtension
                 string setLatentNoiseMaskNode = g.CreateNode("SetLatentNoiseMask", new JObject()
                 {
                     ["samples"] = detailerLatentInput,
-                    ["mask"] = croppedMaskOutput // Use the mask cropped by CropMask (node 106 in SwarmSeg)
+                    ["mask"] = croppedMaskOutput 
                 });
                 JArray maskedLatentForDetailer = new JArray { setLatentNoiseMaskNode, 0 };
 
-                // 11. DifferentialDiffusion (applied to the selected model for detailer)
+                // 11. DifferentialDiffusion 
                 string diffDiffusionNode = g.CreateNode("DifferentialDiffusion", new JObject()
                 {
                     ["model"] = detailerModelInput
                 });
                 JArray diffusedModelForDetailer = new JArray { diffDiffusionNode, 0 };
-
-                // Conditioning for Detailer KSampler
+                
                 string detailerPromptText = g.UserInput.Get(Prompt, "");
                 string detailerNegativePromptText = g.UserInput.Get(NegativePrompt, "");
-                // Corrected: Use the simpler CreateConditioning overload
-                JArray detailerPositiveCond = detailerPromptText == "" ? g.FinalPrompt : g.CreateConditioning(detailerPromptText, detailerClipInput, positive: true);
-                JArray detailerNegativeCond = detailerNegativePromptText == "" ? g.FinalNegativePrompt : g.CreateConditioning(detailerNegativePromptText, detailerClipInput, positive: false);
+                
+                JArray detailerPositiveCond = detailerPromptText == "" ? g.FinalPrompt : g.CreateConditioning(detailerPromptText, detailerClipInput, true);
+                JArray detailerNegativeCond = detailerNegativePromptText == "" ? g.FinalNegativePrompt : g.CreateConditioning(detailerNegativePromptText, detailerClipInput, false);
 
-                // Detailer KSampler parameters
                 int detailerSteps = g.UserInput.TryGet(Steps, out int stepsVal) ? stepsVal : g.UserInput.Get(T2IParamTypes.Steps);
                 float detailerCfg = g.UserInput.TryGet(CFGScale, out float cfgVal) ? cfgVal : (float)g.UserInput.Get(T2IParamTypes.CFGScale);
                 string detailerSamplerName = g.UserInput.TryGet(Sampler, out string samplerVal) && samplerVal != null ? samplerVal : g.UserInput.Get(ComfyUIBackendExtension.SamplerParam, "euler");
@@ -416,23 +385,29 @@ namespace SDetailerExtension
                 long detailerSeed = g.UserInput.Get(Seed, -1L);
                 float currentDenoisingStrength = g.UserInput.Get(DenoisingStrength, 0.4f);
 
+                // Corrected KSampler denoise/start_at_step logic
+                int ksampler_total_steps = detailerSteps;
+                int ksampler_start_at_step = (int)Math.Floor(ksampler_total_steps * (1.0f - currentDenoisingStrength));
+                // Ensure start_at_step is not greater than total_steps -1, and not negative
+                ksampler_start_at_step = Math.Max(0, Math.Min(ksampler_total_steps - 1, ksampler_start_at_step));
 
-                // 12. SwarmKSampler (Detailer Pass)
+
+                // 12. SwarmKSampler (Detailer Pass) - Corrected parameters
                 string detailerSamplerNode = g.CreateNode("SwarmKSampler", new JObject()
                 {
-                    ["model"] = diffusedModelForDetailer, // Model output from DifferentialDiffusion
+                    ["model"] = diffusedModelForDetailer, 
                     ["positive"] = detailerPositiveCond,
                     ["negative"] = detailerNegativeCond,
                     ["latent_image"] = maskedLatentForDetailer,
                     ["seed"] = detailerSeed,
-                    ["steps"] = detailerSteps,
+                    ["steps"] = ksampler_total_steps, // Total steps for this pass
                     ["cfg"] = detailerCfg,
                     ["sampler_name"] = detailerSamplerName,
                     ["scheduler"] = detailerSchedulerName,
-                    ["denoise"] = currentDenoisingStrength, 
-                    ["start_at_step"] = 0, 
-                    ["end_at_step"] = 10000, 
-                    ["preview_method"] = "disable", 
+                    ["denoise"] = 1.0f, // Denoise fully over the active steps (total_steps - start_at_step)
+                    ["start_at_step"] = ksampler_start_at_step, // Calculated start step
+                    ["end_at_step"] = ksampler_total_steps, // End at total steps
+                    ["preview_method"] = "enable", // Matches SwarmSegWorkflow.json node 111
                 });
                 JArray detailedLatentOutput = new JArray { detailerSamplerNode, 0 };
 
@@ -440,44 +415,44 @@ namespace SDetailerExtension
                 string vaeDecodeNode2 = g.CreateNode("VAEDecode", new JObject()
                 {
                     ["samples"] = detailedLatentOutput,
-                    ["vae"] = detailerVaeInput // Use the same VAE as for encoding this pass
+                    ["vae"] = detailerVaeInput 
                 });
                 JArray detailedImageOutput = new JArray { vaeDecodeNode2, 0 };
 
-                // 14. ImageScale (scale detailed image back to original crop dimensions)
+                // 14. ImageScale 
                 string imageScaleBackNode = g.CreateNode("ImageScale", new JObject()
                 {
                     ["image"] = detailedImageOutput,
-                    ["upscale_method"] = "lanczos", // From SwarmSegWorkflow.json node 113
-                    ["width"] = boundsWidth,    // Target original crop width
-                    ["height"] = boundsHeight,  // Target original crop height
-                    ["crop"] = "disabled"       // From SwarmSegWorkflow.json node 113
+                    ["upscale_method"] = "lanczos", 
+                    ["width"] = boundsWidth,    
+                    ["height"] = boundsHeight,  
+                    ["crop"] = "disabled"       
                 });
                 JArray scaledDetailedImageOutput = new JArray { imageScaleBackNode, 0 };
 
-                // 15. ThresholdMask (on the cropped mask from step 7, for compositing)
+                // 15. ThresholdMask 
                 string thresholdMaskNode2 = g.CreateNode("ThresholdMask", new JObject()
                 {
-                    ["mask"] = croppedMaskOutput, // Mask from CropMask (node 106)
-                    ["threshold"] = 0.0f // From SwarmSegWorkflow.json node 114 (value 0 means everything >0 becomes 1)
+                    ["mask"] = croppedMaskOutput, 
+                    ["threshold"] = 0.0f 
                 });
                 JArray finalCompositeMask = new JArray { thresholdMaskNode2, 0 };
                 
                 // 16. SwarmImageCompositeMaskedColorCorrecting
                 string compositeNode = g.CreateNode("SwarmImageCompositeMaskedColorCorrecting", new JObject()
                 {
-                    ["destination"] = initialImage, // The original full image before detailing
-                    ["source"] = scaledDetailedImageOutput, // The detailed and rescaled patch
-                    ["mask"] = finalCompositeMask, // The mask for pasting, derived from croppedMaskOutput
+                    ["destination"] = initialImage, 
+                    ["source"] = scaledDetailedImageOutput, 
+                    ["mask"] = finalCompositeMask, 
                     ["x"] = boundsX,
                     ["y"] = boundsY,
-                    ["correction_method"] = "None" // From SwarmSegWorkflow.json node 115
+                    ["correction_method"] = "None" 
                 });
                 JArray finalImageOutput = new JArray { compositeNode, 0 };
 
                 g.FinalImageOut = finalImageOutput;
 
-            }, 9); // Execution priority, 9 is after main sampler typically
+            }, 9); 
         }
     }
 }
