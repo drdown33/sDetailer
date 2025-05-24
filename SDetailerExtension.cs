@@ -427,7 +427,7 @@ namespace SDetailerExtension
                 string imageScaleBackNode = g.CreateNode("ImageScale", new JObject()
                 {
                     ["image"] = detailedImageOutput,
-                    ["method"] = "lanczos",
+                    ["upscale_method"] = "lanczos",
                     ["width"] = boundsWidth,
                     ["height"] = boundsHeight,
                     ["crop"] = "disabled"
