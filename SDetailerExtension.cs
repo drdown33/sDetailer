@@ -271,20 +271,20 @@ namespace SDetailerExtension
                 });
                 JArray grownMaskOutput = new JArray { growMaskNode, 0 };
 
-                // 4. SwarmMaskThreshold - Corrected parameter names to "min" and "max"
+                // 4. SwarmMaskThreshold 
                 string swarmMaskThresholdNode = g.CreateNode("SwarmMaskThreshold", new JObject()
                 {
                     ["mask"] = grownMaskOutput,
-                    ["min"] = 0.01f, // Corrected from min_threshold, value from SwarmSegWorkflow.json node 103
-                    ["max"] = 1.0f   // Corrected from max_threshold, value from SwarmSegWorkflow.json node 103
+                    ["min"] = 0.01f, 
+                    ["max"] = 1.0f   
                 });
                 JArray thresholdedMaskOutput1 = new JArray { swarmMaskThresholdNode, 0 };
 
-                // 5. SwarmMaskBounds
+                // 5. SwarmMaskBounds - Corrected parameter name to "grow"
                 string maskBoundsNode = g.CreateNode("SwarmMaskBounds", new JObject()
                 {
                     ["mask"] = thresholdedMaskOutput1,
-                    ["padding"] = 16 
+                    ["grow"] = 16 // Corrected from "padding", value from SwarmSegWorkflow.json node 104 and internal code 'oversize'
                 });
                 JArray boundsX = new JArray { maskBoundsNode, 0 };
                 JArray boundsY = new JArray { maskBoundsNode, 1 };
