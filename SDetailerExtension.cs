@@ -250,13 +250,13 @@ namespace SDetailerExtension
                 });
                 JArray yoloMaskOutput = new JArray { yoloDetectNode, 0 };
 
-                // 2. SwarmMaskBlur
+                // 2. SwarmMaskBlur - Corrected parameter name to "sigma"
                 int blurRadius = g.UserInput.Get(MaskBlur, 4);
                 string maskBlurNode = g.CreateNode("SwarmMaskBlur", new JObject()
                 {
                     ["mask"] = yoloMaskOutput,
                     ["blur_radius"] = blurRadius,
-                    ["sigma_ratio"] = 1.0f 
+                    ["sigma"] = 1.0f // Corrected from sigma_ratio to sigma, matching internal code and likely node expectation
                 });
                 JArray blurredMaskOutput = new JArray { maskBlurNode, 0 };
 
@@ -324,17 +324,15 @@ namespace SDetailerExtension
                 JArray scaledCroppedImageOutput = new JArray { imageScaleMPNode, 0 };
 
                 // --- Detailer KSampler Pass ---
-                JArray detailerModelInput_Link = g.FinalModel; // Link to the model node output
-                JArray detailerClipInput_Link = g.FinalClip;   // Link to the clip node output
-                JArray detailerVaeInput_Link = g.FinalVae;     // Link to the VAE node output
-                T2IModel detailerT2IModelInstance = g.FinalLoadedModel; // Actual T2IModel C# object
+                JArray detailerModelInput_Link = g.FinalModel; 
+                JArray detailerClipInput_Link = g.FinalClip;   
+                JArray detailerVaeInput_Link = g.FinalVae;     
+                T2IModel detailerT2IModelInstance = g.FinalLoadedModel; 
 
                 if (g.UserInput.TryGet(VAE, out T2IModel vaeModel) && vaeModel != null)
                 {
                     string vaeLoaderNode = g.CreateNode("VAELoader", new JObject { ["vae_name"] = vaeModel.Name });
                     detailerVaeInput_Link = new JArray { vaeLoaderNode, 0 };
-                    // Note: detailerT2IModelInstance's VAE might not be updated here unless VAE param also implies changing the T2IModel's VAE property.
-                    // For CreateConditioning, the T2IModel primarily provides checkpoint/CLIP context. VAE is separate for KSampler.
                 }
 
                 if (g.UserInput.TryGet(Checkpoint, out T2IModel sdModel) && sdModel != null)
@@ -342,7 +340,7 @@ namespace SDetailerExtension
                     string sdLoaderNode = g.CreateNode("CheckpointLoaderSimple", new JObject { ["ckpt_name"] = sdModel.Name });
                     detailerModelInput_Link = new JArray { sdLoaderNode, 0 };
                     detailerClipInput_Link = new JArray { sdLoaderNode, 1 };
-                    detailerT2IModelInstance = sdModel; // Use the overridden T2IModel C# instance
+                    detailerT2IModelInstance = sdModel; 
 
                     if (!(g.UserInput.TryGet(VAE, out T2IModel explicitVaeModel) && explicitVaeModel != null)) {
                          detailerVaeInput_Link = new JArray { sdLoaderNode, 2 };
@@ -368,14 +366,13 @@ namespace SDetailerExtension
                 // 11. DifferentialDiffusion 
                 string diffDiffusionNode = g.CreateNode("DifferentialDiffusion", new JObject()
                 {
-                    ["model"] = detailerModelInput_Link // Pass the link to the model
+                    ["model"] = detailerModelInput_Link 
                 });
-                JArray diffusedModelForDetailer_Link = new JArray { diffDiffusionNode, 0 }; // Link to the diffused model output
+                JArray diffusedModelForDetailer_Link = new JArray { diffDiffusionNode, 0 }; 
                 
                 string detailerPromptText = g.UserInput.Get(Prompt, "");
                 string detailerNegativePromptText = g.UserInput.Get(NegativePrompt, "");
                 
-                // Corrected: Pass the T2IModel instance as the third argument
                 JArray detailerPositiveCond = detailerPromptText == "" ? g.FinalPrompt : g.CreateConditioning(detailerPromptText, detailerClipInput_Link, detailerT2IModelInstance, true);
                 JArray detailerNegativeCond = detailerNegativePromptText == "" ? g.FinalNegativePrompt : g.CreateConditioning(detailerNegativePromptText, detailerClipInput_Link, detailerT2IModelInstance, false);
 
@@ -393,7 +390,7 @@ namespace SDetailerExtension
                 // 12. SwarmKSampler (Detailer Pass) 
                 string detailerSamplerNode = g.CreateNode("SwarmKSampler", new JObject()
                 {
-                    ["model"] = diffusedModelForDetailer_Link, // Use the link to the (potentially diffused) model
+                    ["model"] = diffusedModelForDetailer_Link, 
                     ["positive"] = detailerPositiveCond,
                     ["negative"] = detailerNegativeCond,
                     ["latent_image"] = maskedLatentForDetailer,
