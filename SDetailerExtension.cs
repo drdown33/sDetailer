@@ -387,23 +387,32 @@ namespace SDetailerExtension
                 int ksampler_start_at_step = (int)Math.Floor(ksampler_total_steps * (1.0f - currentDenoisingStrength));
                 ksampler_start_at_step = Math.Max(0, Math.Min(ksampler_total_steps - 1, ksampler_start_at_step));
 
-                // 12. SwarmKSampler (Detailer Pass) 
-                string detailerSamplerNode = g.CreateNode("SwarmKSampler", new JObject()
-                {
+                // SwarmKSampler (Detailer Pass) - Adding all required parameters
+                string detailerSamplerNode = g.CreateNode("SwarmKSampler", new JObject {
                     ["model"] = diffusedModelForDetailer_Link, 
                     ["positive"] = detailerPositiveCond,
                     ["negative"] = detailerNegativeCond,
                     ["latent_image"] = maskedLatentForDetailer,
-                    ["seed"] = detailerSeed,
+                    ["noise_seed"] = kSamplerNoiseSeed, // Corrected from "seed"
                     ["steps"] = ksampler_total_steps, 
-                    ["cfg"] = detailerCfg,
-                    ["sampler_name"] = detailerSamplerName,
-                    ["scheduler"] = detailerSchedulerName,
+                    ["cfg"] = kSamplerCfg,
+                    ["sampler_name"] = kSamplerSamplerName,
+                    ["scheduler"] = kSamplerSchedulerName,
                     ["denoise"] = 1.0f, 
                     ["start_at_step"] = ksampler_start_at_step, 
                     ["end_at_step"] = ksampler_total_steps, 
-                    ["preview_method"] = "enable", 
-                });
+                    // Adding missing parameters with defaults from screenshot/common values
+                    ["var_seed"] = kSamplerNoiseSeed == 0 && g.UserInput.Get(Seed, -1L) == 0 ? new Random().Next() : kSamplerNoiseSeed +1, // Ensure var_seed is different if main seed is 0, or just increment
+                    ["var_seed_strength"] = 0.0f,
+                    ["sigma_max"] = -1.0f, // Or a calculated value if appropriate, e.g., based on scheduler
+                    ["sigma_min"] = -1.0f, // Or a calculated value
+                    ["rho"] = 7.0f, // Default from screenshot
+                    ["add_noise"] = "enable", // Default from screenshot
+                    ["return_with_leftover_noise"] = "disable", // Default from screenshot
+                    ["previews"] = "default", // Corrected from "preview_method", default from screenshot
+                    ["tile_sample"] = false, // Default from screenshot
+                    ["tile_size"] = 1024 // Default from screenshot
+                });    
                 JArray detailedLatentOutput = new JArray { detailerSamplerNode, 0 };
 
                 // 13. VAEDecode (detailed latent)
