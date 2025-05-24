@@ -20,13 +20,13 @@ namespace SDetailerExtension
         public static T2IRegisteredParam<float> ConfidenceThreshold;
         public static T2IRegisteredParam<string> MaskFilterMethod;
         public static T2IRegisteredParam<string> ClassFilter;
-        public static T2IRegisteredParam<int> MaskTopK; 
-        public static T2IRegisteredParam<float> MinRatio; 
-        public static T2IRegisteredParam<float> MaxRatio; 
+        public static T2IRegisteredParam<int> MaskTopK;
+        public static T2IRegisteredParam<float> MinRatio;
+        public static T2IRegisteredParam<float> MaxRatio;
         public static T2IRegisteredParam<int> DilateErode;
-        public static T2IRegisteredParam<int> XOffset; // Note: SwarmSegWorkflow structure doesn't have a direct XOffset node. This param might not have an effect.
-        public static T2IRegisteredParam<int> YOffset; // Note: SwarmSegWorkflow structure doesn't have a direct YOffset node. This param might not have an effect.
-        public static T2IRegisteredParam<string> MaskMergeInvert; 
+        public static T2IRegisteredParam<int> XOffset;
+        public static T2IRegisteredParam<int> YOffset;
+        public static T2IRegisteredParam<string> MaskMergeInvert;
         public static T2IRegisteredParam<int> MaskBlur;
         public static T2IRegisteredParam<float> DenoisingStrength;
         public static T2IRegisteredParam<string> Prompt;
@@ -38,9 +38,8 @@ namespace SDetailerExtension
         public static T2IRegisteredParam<string> Sampler;
         public static T2IRegisteredParam<long> Seed;
         public static T2IRegisteredParam<string> Scheduler;
-        public static T2IRegisteredParam<string> SkipIndices; 
+        public static T2IRegisteredParam<string> SkipIndices;
 
-        // Helper to get model path string
         private static JToken GetModelPath(T2IModel model, JToken defaultValue)
         {
             if (model == null)
@@ -58,19 +57,19 @@ namespace SDetailerExtension
 
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmYoloDetection"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmMaskBlur"] = "comfyui";
-            ComfyUIBackendExtension.NodeToFeatureMap["GrowMask"] = "comfyui"; 
+            ComfyUIBackendExtension.NodeToFeatureMap["GrowMask"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmMaskThreshold"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmMaskBounds"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmImageCrop"] = "comfyui";
-            ComfyUIBackendExtension.NodeToFeatureMap["CropMask"] = "comfyui"; 
+            ComfyUIBackendExtension.NodeToFeatureMap["CropMask"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmImageScaleForMP"] = "comfyui";
-            ComfyUIBackendExtension.NodeToFeatureMap["VAEEncode"] = "comfyui"; 
-            ComfyUIBackendExtension.NodeToFeatureMap["SetLatentNoiseMask"] = "comfyui"; 
-            ComfyUIBackendExtension.NodeToFeatureMap["DifferentialDiffusion"] = "comfyui"; 
-            ComfyUIBackendExtension.NodeToFeatureMap["SwarmKSampler"] = "comfyui"; 
-            ComfyUIBackendExtension.NodeToFeatureMap["VAEDecode"] = "comfyui"; 
-            ComfyUIBackendExtension.NodeToFeatureMap["ImageScale"] = "comfyui"; 
-            ComfyUIBackendExtension.NodeToFeatureMap["ThresholdMask"] = "comfyui"; 
+            ComfyUIBackendExtension.NodeToFeatureMap["VAEEncode"] = "comfyui";
+            ComfyUIBackendExtension.NodeToFeatureMap["SetLatentNoiseMask"] = "comfyui";
+            ComfyUIBackendExtension.NodeToFeatureMap["DifferentialDiffusion"] = "comfyui";
+            ComfyUIBackendExtension.NodeToFeatureMap["SwarmKSampler"] = "comfyui";
+            ComfyUIBackendExtension.NodeToFeatureMap["VAEDecode"] = "comfyui";
+            ComfyUIBackendExtension.NodeToFeatureMap["ImageScale"] = "comfyui";
+            ComfyUIBackendExtension.NodeToFeatureMap["ThresholdMask"] = "comfyui";
             ComfyUIBackendExtension.NodeToFeatureMap["SwarmImageCompositeMaskedColorCorrecting"] = "comfyui";
         }
 
@@ -103,19 +102,19 @@ namespace SDetailerExtension
 
             MinRatio = T2IParamTypes.Register<float>(new("SD Min Area Ratio", "Ignore masks smaller than this fraction of image area (e.g., 0.1 for 10%).", "0.0",
                 Min: 0.0f, Max: 1.0f, Step: 0.1f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_min_ratio", OrderPriority: 50));
- 
+
             MaxRatio = T2IParamTypes.Register<float>(new("SD Max Area Ratio", "Ignore masks larger than this fraction of image area (e.g., 0.9 for 90%).", "1.0",
                 Min: 0.0f, Max: 1.0f, Step: 0.1f, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_max_ratio", OrderPriority: 60));
- 
+
             SkipIndices = T2IParamTypes.Register<string>(new("SD Skip Indices", "Comma-separated mask indices (1-based) to skip after sorting (e.g., '1,3'). Maps to 'index' in SwarmYoloDetection (0=none, or specific 1-based index).", "",
                 Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_skip_indices", OrderPriority: 65));
- 
+
             XOffset = T2IParamTypes.Register<int>(new("SD X Offset", "Shift mask horizontally (pixels). Positive = right, negative = left. (May not apply with SwarmSegWorkflow structure)", "0",
                 Min: -200, Max: 200, Step: 1, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_x_offset", OrderPriority: 70));
- 
+
             YOffset = T2IParamTypes.Register<int>(new("SD Y Offset", "Shift mask vertically (pixels). Positive = down, negative = up. (May not apply with SwarmSegWorkflow structure)", "0",
                 Min: -200, Max: 200, Step: 1, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_y_offset", OrderPriority: 80));
- 
+
             DilateErode = T2IParamTypes.Register<int>(new("SD Dilate/Erode", "Expand (positive) or shrink (negative) mask area in pixels. 0 = no change. Maps to GrowMask 'expand'.", "4",
                 Min: -128, Max: 128, Step: 4, Toggleable: false, Group: Group, FeatureFlag: "comfyui", ID: "sdetailer_dilate_erode", OrderPriority: 90));
 
@@ -204,7 +203,7 @@ namespace SDetailerExtension
                     return;
                 }
 
-                if (!g.UserInput.TryGet(DetectionModel, out _)) 
+                if (!g.UserInput.TryGet(DetectionModel, out _))
                 {
                     return;
                 }
@@ -215,76 +214,76 @@ namespace SDetailerExtension
                     return;
                 }
 
-                float yoloThreshold = g.UserInput.Get(ConfidenceThreshold, 0.3f); 
-                string yoloClassFilter = g.UserInput.Get(ClassFilter, ""); 
+                float yoloThreshold = g.UserInput.Get(ConfidenceThreshold, 0.3f);
+                string yoloClassFilter = g.UserInput.Get(ClassFilter, "");
                 string maskFilterMethodVal = g.UserInput.Get(MaskFilterMethod, "area");
-                string yoloSortOrder = "left-right"; 
+                string yoloSortOrder = "left-right";
                 if (maskFilterMethodVal == "area") {
                     yoloSortOrder = "largest-smallest";
                 } else if (maskFilterMethodVal == "confidence") {
-                    yoloSortOrder = "left-right"; 
+                    yoloSortOrder = "left-right";
                 }
-                
-                int yoloIndex = 0; 
+
+                int yoloIndex = 0;
                 string skipIndicesVal = g.UserInput.Get(SkipIndices, "");
                 if (!string.IsNullOrWhiteSpace(skipIndicesVal)) {
                     var firstIndexStr = skipIndicesVal.Split(',')[0].Trim();
                     if (int.TryParse(firstIndexStr, out int parsedIndex)) {
-                        if (parsedIndex > 0) { 
-                            yoloIndex = parsedIndex; 
+                        if (parsedIndex > 0) {
+                            yoloIndex = parsedIndex;
                         }
                     }
                 }
 
-                JArray initialImage = g.FinalImageOut; 
+                JArray initialImage = g.FinalImageOut;
 
-                // 1. SwarmYoloDetection 
+                // 1. SwarmYoloDetection
                 string yoloDetectNode = g.CreateNode("SwarmYoloDetection", new JObject()
                 {
                     ["image"] = initialImage,
                     ["model_name"] = detectionModelName,
-                    ["threshold"] = yoloThreshold,         
-                    ["class_filter"] = yoloClassFilter,    
-                    ["sort_order"] = yoloSortOrder, 
-                    ["index"] = yoloIndex                  
+                    ["threshold"] = yoloThreshold,
+                    ["class_filter"] = yoloClassFilter,
+                    ["sort_order"] = yoloSortOrder,
+                    ["index"] = yoloIndex
                 });
                 JArray yoloMaskOutput = new JArray { yoloDetectNode, 0 };
 
-                // 2. SwarmMaskBlur 
+                // 2. SwarmMaskBlur
                 int blurRadius = g.UserInput.Get(MaskBlur, 4);
                 string maskBlurNode = g.CreateNode("SwarmMaskBlur", new JObject()
                 {
                     ["mask"] = yoloMaskOutput,
                     ["blur_radius"] = blurRadius,
-                    ["sigma"] = 1.0f 
+                    ["sigma"] = 1.0f
                 });
                 JArray blurredMaskOutput = new JArray { maskBlurNode, 0 };
 
                 // 3. GrowMask
                 int expand = g.UserInput.Get(DilateErode, 4);
-                if (expand < 0) expand = 0; 
+                if (expand < 0) expand = 0;
                 string growMaskNode = g.CreateNode("GrowMask", new JObject()
                 {
                     ["mask"] = blurredMaskOutput,
                     ["expand"] = expand,
-                    ["tapered_corners"] = true 
+                    ["tapered_corners"] = true
                 });
                 JArray grownMaskOutput = new JArray { growMaskNode, 0 };
 
-                // 4. SwarmMaskThreshold 
+                // 4. SwarmMaskThreshold
                 string swarmMaskThresholdNode = g.CreateNode("SwarmMaskThreshold", new JObject()
                 {
                     ["mask"] = grownMaskOutput,
-                    ["min"] = 0.01f, 
-                    ["max"] = 1.0f   
+                    ["min"] = 0.01f,
+                    ["max"] = 1.0f
                 });
                 JArray thresholdedMaskOutput1 = new JArray { swarmMaskThresholdNode, 0 };
 
-                // 5. SwarmMaskBounds 
+                // 5. SwarmMaskBounds
                 string maskBoundsNode = g.CreateNode("SwarmMaskBounds", new JObject()
                 {
                     ["mask"] = thresholdedMaskOutput1,
-                    ["grow"] = 16 
+                    ["grow"] = 16
                 });
                 JArray boundsX = new JArray { maskBoundsNode, 0 };
                 JArray boundsY = new JArray { maskBoundsNode, 1 };
@@ -294,7 +293,7 @@ namespace SDetailerExtension
                 // 6. SwarmImageCrop (on original image)
                 string imageCropNode = g.CreateNode("SwarmImageCrop", new JObject()
                 {
-                    ["image"] = initialImage, 
+                    ["image"] = initialImage,
                     ["x"] = boundsX,
                     ["y"] = boundsY,
                     ["width"] = boundsWidth,
@@ -305,29 +304,29 @@ namespace SDetailerExtension
                 // 7. CropMask (on thresholded mask)
                 string maskCropNode = g.CreateNode("CropMask", new JObject()
                 {
-                    ["mask"] = thresholdedMaskOutput1, 
+                    ["mask"] = thresholdedMaskOutput1,
                     ["x"] = boundsX,
                     ["y"] = boundsY,
                     ["width"] = boundsWidth,
                     ["height"] = boundsHeight
                 });
-                JArray croppedMaskOutput = new JArray { maskCropNode, 0 }; 
+                JArray croppedMaskOutput = new JArray { maskCropNode, 0 };
 
-                // 8. SwarmImageScaleForMP 
+                // 8. SwarmImageScaleForMP
                 string imageScaleMPNode = g.CreateNode("SwarmImageScaleForMP", new JObject()
                 {
                     ["image"] = croppedImageOutput,
-                    ["width"] = 1024,          
-                    ["height"] = 1024,         
-                    ["can_shrink"] = true      
+                    ["width"] = 1024,
+                    ["height"] = 1024,
+                    ["can_shrink"] = true
                 });
                 JArray scaledCroppedImageOutput = new JArray { imageScaleMPNode, 0 };
 
                 // --- Detailer KSampler Pass ---
-                JArray detailerModelInput_Link = g.FinalModel; 
-                JArray detailerClipInput_Link = g.FinalClip;   
-                JArray detailerVaeInput_Link = g.FinalVae;     
-                T2IModel detailerT2IModelInstance = g.FinalLoadedModel; 
+                JArray detailerModelInput_Link = g.FinalModel;
+                JArray detailerClipInput_Link = g.FinalClip;
+                JArray detailerVaeInput_Link = g.FinalVae;
+                T2IModel detailerT2IModelInstance = g.FinalLoadedModel;
 
                 if (g.UserInput.TryGet(VAE, out T2IModel vaeModel) && vaeModel != null)
                 {
@@ -340,13 +339,13 @@ namespace SDetailerExtension
                     string sdLoaderNode = g.CreateNode("CheckpointLoaderSimple", new JObject { ["ckpt_name"] = sdModel.Name });
                     detailerModelInput_Link = new JArray { sdLoaderNode, 0 };
                     detailerClipInput_Link = new JArray { sdLoaderNode, 1 };
-                    detailerT2IModelInstance = sdModel; 
+                    detailerT2IModelInstance = sdModel;
 
                     if (!(g.UserInput.TryGet(VAE, out T2IModel explicitVaeModel) && explicitVaeModel != null)) {
                          detailerVaeInput_Link = new JArray { sdLoaderNode, 2 };
                     }
                 }
-                
+
                 // 9. VAEEncode (cropped, scaled image)
                 string vaeEncodeNode = g.CreateNode("VAEEncode", new JObject()
                 {
@@ -359,20 +358,20 @@ namespace SDetailerExtension
                 string setLatentNoiseMaskNode = g.CreateNode("SetLatentNoiseMask", new JObject()
                 {
                     ["samples"] = detailerLatentInput,
-                    ["mask"] = croppedMaskOutput 
+                    ["mask"] = croppedMaskOutput
                 });
                 JArray maskedLatentForDetailer = new JArray { setLatentNoiseMaskNode, 0 };
 
-                // 11. DifferentialDiffusion 
+                // 11. DifferentialDiffusion
                 string diffDiffusionNode = g.CreateNode("DifferentialDiffusion", new JObject()
                 {
-                    ["model"] = detailerModelInput_Link 
+                    ["model"] = detailerModelInput_Link
                 });
-                JArray diffusedModelForDetailer_Link = new JArray { diffDiffusionNode, 0 }; 
-                
+                JArray diffusedModelForDetailer_Link = new JArray { diffDiffusionNode, 0 };
+
                 string detailerPromptText = g.UserInput.Get(Prompt, "");
                 string detailerNegativePromptText = g.UserInput.Get(NegativePrompt, "");
-                
+
                 JArray detailerPositiveCond = detailerPromptText == "" ? g.FinalPrompt : g.CreateConditioning(detailerPromptText, detailerClipInput_Link, detailerT2IModelInstance, true);
                 JArray detailerNegativeCond = detailerNegativePromptText == "" ? g.FinalNegativePrompt : g.CreateConditioning(detailerNegativePromptText, detailerClipInput_Link, detailerT2IModelInstance, false);
 
@@ -382,81 +381,82 @@ namespace SDetailerExtension
                 string detailerSchedulerName = g.UserInput.TryGet(Scheduler, out string schedulerVal) && schedulerVal != null ? schedulerVal : g.UserInput.Get(ComfyUIBackendExtension.SchedulerParam, "normal");
                 long detailerSeed = g.UserInput.Get(Seed, -1L);
                 float currentDenoisingStrength = g.UserInput.Get(DenoisingStrength, 0.4f);
-                
+
                 int ksampler_total_steps = detailerSteps;
                 int ksampler_start_at_step = (int)Math.Floor(ksampler_total_steps * (1.0f - currentDenoisingStrength));
                 ksampler_start_at_step = Math.Max(0, Math.Min(ksampler_total_steps - 1, ksampler_start_at_step));
 
-                // SwarmKSampler (Detailer Pass) - Adding all required parameters
-                string detailerSamplerNode = g.CreateNode("SwarmKSampler", new JObject {
-                    ["model"] = diffusedModelForDetailer_Link, 
+                // 12. SwarmKSampler (Detailer Pass) - Applying corrections from SDetailerExtension2.cs
+                string detailerSamplerNode = g.CreateNode("SwarmKSampler", new JObject()
+                {
+                    ["model"] = diffusedModelForDetailer_Link,
                     ["positive"] = detailerPositiveCond,
                     ["negative"] = detailerNegativeCond,
                     ["latent_image"] = maskedLatentForDetailer,
-                    ["noise_seed"] = kSamplerNoiseSeed, // Corrected from "seed"
-                    ["steps"] = ksampler_total_steps, 
-                    ["cfg"] = kSamplerCfg,
-                    ["sampler_name"] = kSamplerSamplerName,
-                    ["scheduler"] = kSamplerSchedulerName,
-                    ["denoise"] = 1.0f, 
-                    ["start_at_step"] = ksampler_start_at_step, 
-                    ["end_at_step"] = ksampler_total_steps, 
-                    // Adding missing parameters with defaults from screenshot/common values
-                    ["var_seed"] = kSamplerNoiseSeed == 0 && g.UserInput.Get(Seed, -1L) == 0 ? new Random().Next() : kSamplerNoiseSeed +1, // Ensure var_seed is different if main seed is 0, or just increment
+                    ["noise_seed"] = detailerSeed, // This is the 'noise_seed' argument
+                    ["steps"] = ksampler_total_steps,
+                    ["cfg"] = detailerCfg,
+                    ["sampler_name"] = detailerSamplerName,
+                    ["scheduler"] = detailerSchedulerName,
+                    ["denoise"] = 1.0f, // Included as per SDetailerExtension2.cs logic
+                    ["start_at_step"] = ksampler_start_at_step,
+                    ["end_at_step"] = ksampler_total_steps,
+                     // Value for var_seed taken from SDetailerExtension2.cs, using 'detailerSeed'
+                    ["var_seed"] = detailerSeed == 0 ? new Random().Next() : detailerSeed + 1,
                     ["var_seed_strength"] = 0.0f,
-                    ["sigma_max"] = -1.0f, // Or a calculated value if appropriate, e.g., based on scheduler
-                    ["sigma_min"] = -1.0f, // Or a calculated value
-                    ["rho"] = 7.0f, // Default from screenshot
-                    ["add_noise"] = "enable", // Default from screenshot
-                    ["return_with_leftover_noise"] = "disable", // Default from screenshot
-                    ["previews"] = "default", // Corrected from "preview_method", default from screenshot
-                    ["tile_sample"] = false, // Default from screenshot
-                    ["tile_size"] = 1024 // Default from screenshot
-                });    
+                    ["sigma_max"] = -1.0f,
+                    ["sigma_min"] = -1.0f,
+                    ["rho"] = 7.0f,
+                    ["add_noise"] = "enable", // "enable" or "disable"
+                    ["return_with_leftover_noise"] = "disable", // "enable" or "disable"
+                    ["previews"] = "default", // Or "none", "output_only" etc. based on ComfyUI node
+                    ["tile_sample"] = false,
+                    ["tile_size"] = 1024
+                });
                 JArray detailedLatentOutput = new JArray { detailerSamplerNode, 0 };
 
                 // 13. VAEDecode (detailed latent)
                 string vaeDecodeNode2 = g.CreateNode("VAEDecode", new JObject()
                 {
                     ["samples"] = detailedLatentOutput,
-                    ["vae"] = detailerVaeInput_Link 
+                    ["vae"] = detailerVaeInput_Link
                 });
                 JArray detailedImageOutput = new JArray { vaeDecodeNode2, 0 };
 
-                // 14. ImageScale - Corrected parameter name to "method"
+                // 14. ImageScale
                 string imageScaleBackNode = g.CreateNode("ImageScale", new JObject()
                 {
                     ["image"] = detailedImageOutput,
-                    ["method"] = "lanczos", // Corrected from "upscale_method"
-                    ["width"] = boundsWidth,    
-                    ["height"] = boundsHeight,  
-                    ["crop"] = "disabled"       
+                    ["method"] = "lanczos",
+                    ["width"] = boundsWidth,
+                    ["height"] = boundsHeight,
+                    ["crop"] = "disabled"
                 });
                 JArray scaledDetailedImageOutput = new JArray { imageScaleBackNode, 0 };
 
-                // 15. ThresholdMask 
+                // 15. ThresholdMask
                 string thresholdMaskNode2 = g.CreateNode("ThresholdMask", new JObject()
                 {
-                    ["mask"] = croppedMaskOutput, 
-                    ["value"] = 0.0f 
+                    ["mask"] = croppedMaskOutput,
+                    ["value"] = 0.0f
                 });
                 JArray finalCompositeMask = new JArray { thresholdMaskNode2, 0 };
-                
+
                 // 16. SwarmImageCompositeMaskedColorCorrecting
                 string compositeNode = g.CreateNode("SwarmImageCompositeMaskedColorCorrecting", new JObject()
                 {
-                    ["destination"] = initialImage, 
-                    ["source"] = scaledDetailedImageOutput, 
-                    ["mask"] = finalCompositeMask, 
+                    ["destination"] = initialImage,
+                    ["source"] = scaledDetailedImageOutput,
+                    ["mask"] = finalCompositeMask,
                     ["x"] = boundsX,
                     ["y"] = boundsY,
-                    ["correction_method"] = "None" 
+                    ["correction_method"] = "None"
                 });
                 JArray finalImageOutput = new JArray { compositeNode, 0 };
 
                 g.FinalImageOut = finalImageOutput;
 
-            }, 9); 
+            }, 9);
         }
     }
 }
